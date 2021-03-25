@@ -1,9 +1,9 @@
 
 module vball(
   input reset,
-  input clk_sys, // 48
-  input clk_vid, // 24
-  input clk, // en 2
+  input clk_sys,
+  input clk_vid,
+  input clk,
 
   input [7:0] idata,
   input [24:0] iaddr,
@@ -36,14 +36,8 @@ wire [7:0] col1_data, col2_data, col3_data;
 wire [7:0] scol1_data, scol2_data, scol3_data;
 reg [7:0] port_data;
 wire [7:0] spr_data, smd, sma;
-
-wire ram_en = AB[15:11] == 5'b00000; // 0-7ff
-wire spr_en = AB[15:11] == 5'b00001; // 800-fff
-wire port_en = AB[15:12] == 4'b0001; // 1000-1fff
-wire vram_en = AB[15:12] == 4'b0010; // 2000-3fff
-wire attr_en = AB[15:12] == 4'b0011; // 3000-3fff
-wire bank_en = AB[15:14] == 4'b01; // 4000-7fff
-wire rom_en = |AB[15:14]; // 4000-ffff
+wire [9:0] bg_col_addr;
+wire [9:0] sp_col_addr;
 
 reg scrollx_hi, scrolly_hi;
 reg [3:0] unknown_counter;
@@ -56,6 +50,24 @@ reg [7:0] bankswitch, scrollx_lo, scrolly_lo;
 reg [7:0] irq_ack;
 reg int_reset;
 wire [8:0] hcount, vcount;
+
+wire ram_en  = AB[15:11]  == 5'b00000; // 0-7ff
+wire spr_en  = AB[15:11]  == 5'b00001; // 800-fff
+wire port_en = AB[15:12] == 4'b0001;   // 1000-1fff
+wire vram_en = AB[15:12] == 4'b0010;   // 2000-3fff
+wire attr_en = AB[15:12] == 4'b0011;   // 3000-3fff
+wire bank_en = AB[15:14] == 4'b01;     // 4000-7fff
+wire rom_en  = |AB[15:14];             // 4000-ffff
+
+wire active;
+wire [3:0] bg_red, bg_green, bg_blue;
+wire [3:0] sp_red, sp_green, sp_blue;
+assign red   = active ? sp_red   : bg_red;
+assign green = active ? sp_green : bg_green;
+assign blue  = active ? sp_blue  : bg_blue;
+
+wire [8:0] hcnt = hcount + 9'd12;
+wire [8:0] vcnt = vcount + 9'd8;
 
 
 always @(posedge clk_sys) begin
@@ -79,19 +91,6 @@ always @(posedge clk_sys) begin
     endcase
 end
 
-// wire [7:0] gfx_data;
-// wire [18:0] gfx_addr;
-
-// rom #(.addr_width(19), .data_width(8)) gfx(
-//   .clk(clk_sys),
-//   .ce(1'b0),
-//   .addr(gfx_addr),
-//   .q(gfx_data),
-//   .idata(idata),
-//   .iaddr(iaddr[18:0]),
-//   .iload(iaddr < 25'h80000) // 0-7ffff 8x64k
-// );
-
 rom rom(
   .clk(clk_sys),
   .ce(~rom_en),
@@ -99,7 +98,7 @@ rom rom(
   .q(rom_data),
   .idata(idata),
   .iaddr(iaddr[15:0]),
-  .iload(iaddr < 25'h90000) // 80000-8ffff 64k
+  .iload(iaddr < 25'h90000)
 );
 
 rom #(.addr_width(17), .data_width(8)) spr1(
@@ -109,7 +108,7 @@ rom #(.addr_width(17), .data_width(8)) spr1(
   .q(srd1),
   .idata(idata),
   .iaddr({ ~iaddr[16], iaddr[15:0] }),
-  .iload(iaddr < 25'hb0000) // 90000-cffff 128k
+  .iload(iaddr < 25'hb0000)
 );
 
 rom #(.addr_width(17), .data_width(8)) spr2(
@@ -119,7 +118,7 @@ rom #(.addr_width(17), .data_width(8)) spr2(
   .q(srd2),
   .idata(idata),
   .iaddr({ ~iaddr[16], iaddr[15:0] }),
-  .iload(iaddr < 25'hd0000) // 90000-cffff 128k
+  .iload(iaddr < 25'hd0000)
 );
 
 rom #(.addr_width(10), .data_width(8)) col1(
@@ -256,16 +255,6 @@ vball_video vball_video(
 
 );
 
-wire active;
-wire [3:0] bg_red, bg_green, bg_blue;
-wire [3:0] sp_red, sp_green, sp_blue;
-assign red = active ? sp_red : bg_red;
-assign green = active ? sp_green : bg_green;
-assign blue = active ? sp_blue : bg_blue;
-
-wire [8:0] hcnt = hcount + 9'd12;
-wire [8:0] vcnt = vcount + 9'd8;
-
 vball_sprites vball_sprites(
   .clk_sys(clk_sys),
   .sp_bank(sp_bank),
@@ -276,7 +265,6 @@ vball_sprites vball_sprites(
   .srd2(srd2),
   .sca(sp_col_addr),
   .scd({ scol1_data[3:0], scol2_data[3:0], scol3_data[3:0] }),
-  // .col_busy(col_busy),
   .hcount(hcnt),
   .vcount(vcnt),
   .red(sp_red),
@@ -284,14 +272,6 @@ vball_sprites vball_sprites(
   .blue(sp_blue),
   .active(active)
 );
-
-// wire col_busy;
-wire [9:0] bg_col_addr;
-wire [9:0] sp_col_addr;
-
-// wire [10:0] col_addr = col_busy ? bg_col_addr : sp_col_addr;
-
-
 
 vball_bg vball_bg(
   .clk_sys(clk_sys),
@@ -310,7 +290,6 @@ vball_bg vball_bg(
 
   .col_addr(bg_col_addr),
   .col_data({ col1_data[3:0], col2_data[3:0], col3_data[3:0] }),
-  // .col_busy(col_busy),
 
   .bg_bank(bg_bank),
   .tile_offset(tile_offset),

@@ -321,7 +321,6 @@ vball vball
 	.vs(VSync),
 	.hb(HBlank),
 	.vb(VBlank),
-	// .ce_pix(ce_pix),
 
 	.gfx_addr(gfx_addr),
 	.gfx_data(gfx_data),
@@ -330,9 +329,6 @@ vball vball
 );
 
 wire ce_pix = clk_vid_en;
-// reg ce_pix;
-// always @(posedge clk_sys)
-// 	if (clk_vid_en) ce_pix <= ~ce_pix;
 
 assign CE_PIXEL = 1'b1;
 assign CLK_VIDEO = clk_vid;

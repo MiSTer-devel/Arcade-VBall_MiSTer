@@ -16,7 +16,6 @@ module vball_bg(
 
   output reg [9:0] col_addr,
   input [11:0] col_data,
-  // output col_busy,
 
   input [2:0] bg_bank,
   input tile_offset,
@@ -26,43 +25,6 @@ module vball_bg(
   input [8:0] vscroll,
   input vb
 );
-
-// 1------2-------
-// |  1   |  2   |
-// 3------4------|
-// |  3   |  4   |
-// ---------------
-//
-//   32
-// 1-------
-// |  1   | 32
-// 2------|
-// |  2   | 32
-// 3-------
-// |  3   | 32
-// 4------|
-// |  4   | 32
-// --------
-//
-// tilemaps: 512x512
-// title screen: x:0-256 y:256-512
-// ---------------
-// |      |      |
-// |------|------|
-// | scrn |      |
-// ---------------
-//
-// game screen: x:0-512 y:128-512
-// ---------------
-// |-------------|
-// |   screen    |
-// |             |
-// ---------------
-//
-// 8x8 fg tiles, 32x32
-// 0x4000 tiles (16384), 32 bytes each, 0x4000 * 32 = 0x80000
-// 0b 111 1111 1111 1111 1111 : 0x7ffff
-//    taa aaav vvvv vvvx xxxx
 
 reg [8:0] hscr, vscr;
 always @(posedge clk_sys)
@@ -82,8 +44,6 @@ assign vaddr = (ty+y1+y2)*32 + tx[4:0];
 
 wire [3:0] pxl1 = { gfx_data[6], gfx_data[4], gfx_data[2], gfx_data[0] };
 wire [3:0] pxl2 = { gfx_data[7], gfx_data[5], gfx_data[3], gfx_data[1] };
-
-// assign col_busy = state == 8'd10;
 
 reg [8:0] hlatch;
 reg [7:0] state;
