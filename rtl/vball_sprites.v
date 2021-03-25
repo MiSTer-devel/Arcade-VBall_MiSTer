@@ -114,7 +114,7 @@ always @(posedge clk_sys) begin
       state <= 4'd11;
     end
     4'd11: begin
-      if (cid1 != 0) begin
+      if (cid != 0) begin
         if (vcount[0]) begin
           scanline1[spx+scnx+6] <= { 1'b1, scd };
         end
