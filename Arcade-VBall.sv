@@ -204,14 +204,17 @@ localparam CONF_STR = {
 	"VBall;;",
 	"-;",
 	"O89,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
-	"O2,TV Mode,NTSC,PAL;",
-	"O34,Noise,White,Red,Green,Blue;",
 	"-;",
 	"F,BIN,Load File;",
 	"-;",
 	"-;",
+	"O7,Service,Off,On;",
+	"-;",
+	"DIP;",
+	"-;",
 	"T0,Reset;",
 	"R0,Reset and close OSD;",
+	"J1,A,B,Start1P,Start2P,CoinA,CoinB;",
 	"V,v",`BUILD_DATE
 };
 
@@ -301,6 +304,26 @@ wire reset = RESET | status[0] | buttons[1] | ioctl_download;
 
 //////////////////////////////////////////////////////////////////
 
+reg [7:0] sw[8];
+always @(posedge clk_sys)
+	if (ioctl_wr && (ioctl_index==254) && !ioctl_addr[24:3]) sw[ioctl_addr[2:0]] <= ioctl_dout;
+
+wire SERVICE = status[7];
+wire [7:0] P1 = {
+	joystick_0[5],
+	1'b1,
+	joystick_0[7],
+	joystick_0[6],
+	joystick_0[3],
+	joystick_0[2],
+	joystick_0[1],
+	joystick_0[0]
+};
+wire COIN1 = joystick_0[9];
+wire COIN2 = joystick_0[10];
+reg [7:0] P2 = 8'hff;
+reg [7:0] P3 = 8'hff;
+reg [7:0] P4 = 8'hff;
 
 vball vball
 (
@@ -324,14 +347,24 @@ vball vball
 
 	.gfx_addr(gfx_addr),
 	.gfx_data(gfx_data),
-	.gfx_read(gfx_read)
+	.gfx_read(gfx_read),
+
+	.P1(~P1),
+	.P2(P2),
+	.P3(P3),
+	.P4(P4),
+
+	.COIN1(COIN1),
+	.COIN2(COIN2),
+	.SERVICE(SERVICE),
+
+	.DSW1(sw[0]),
+	.DSW2(sw[1])
 
 );
 
-wire ce_pix = clk_vid_en;
-
-assign CE_PIXEL = 1'b1;
-assign CLK_VIDEO = clk_vid;
+assign CE_PIXEL = clk_vid_en;
+assign CLK_VIDEO = clk_sys;
 
 wire HBlank, VBlank;
 wire HSync, VSync;

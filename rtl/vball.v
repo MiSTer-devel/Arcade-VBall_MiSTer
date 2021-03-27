@@ -19,7 +19,20 @@ module vball(
 
   output gfx_read,
   output [18:0] gfx_addr,
-  input [7:0] gfx_data
+  input [7:0] gfx_data,
+
+  input [7:0] P1,
+  input [7:0] P2,
+  input [7:0] P3,
+  input [7:0] P4,
+
+  input COIN1,
+  input COIN2,
+  input SERVICE,
+
+  input [7:0] DSW1,
+  input [7:0] DSW2
+
 );
 
 wire [7:0] rom_data;
@@ -39,6 +52,14 @@ wire [7:0] spr_data, smd, sma;
 wire [9:0] bg_col_addr;
 wire [9:0] sp_col_addr;
 
+wire ram_en = AB[15:11] == 5'b00000; // 0-7ff
+wire spr_en = AB[15:11] == 5'b00001; // 800-fff
+wire port_en = AB[15:12] == 4'b0001; // 1000-1fff
+wire vram_en = AB[15:12] == 4'b0010; // 2000-3fff
+wire attr_en = AB[15:12] == 4'b0011; // 3000-3fff
+wire bank_en = AB[15:14] == 4'b01; // 4000-7fff
+wire rom_en = |AB[15:14]; // 4000-ffff
+
 reg scrollx_hi, scrolly_hi;
 reg [3:0] unknown_counter;
 reg flip_screen;
@@ -51,20 +72,13 @@ reg [7:0] irq_ack;
 reg int_reset;
 wire [8:0] hcount, vcount;
 
-wire ram_en  = AB[15:11]  == 5'b00000; // 0-7ff
-wire spr_en  = AB[15:11]  == 5'b00001; // 800-fff
-wire port_en = AB[15:12] == 4'b0001;   // 1000-1fff
-wire vram_en = AB[15:12] == 4'b0010;   // 2000-3fff
-wire attr_en = AB[15:12] == 4'b0011;   // 3000-3fff
-wire bank_en = AB[15:14] == 4'b01;     // 4000-7fff
-wire rom_en  = |AB[15:14];             // 4000-ffff
 
 wire active;
 wire [3:0] bg_red, bg_green, bg_blue;
 wire [3:0] sp_red, sp_green, sp_blue;
-assign red   = active ? sp_red   : bg_red;
+assign red = active ? sp_red : bg_red;
 assign green = active ? sp_green : bg_green;
-assign blue  = active ? sp_blue  : bg_blue;
+assign blue = active ? sp_blue : bg_blue;
 
 wire [8:0] hcnt = hcount + 9'd12;
 wire [8:0] vcnt = vcount + 9'd8;
@@ -75,13 +89,13 @@ always @(posedge clk_sys) begin
   port_data <= 8'd0;
   if (port_en)
     case (AB[3:0])
-      // 4'h0: // P1
-      // 4'h1: // P2
-      4'h2: port_data <= { 4'd0, vb, 1'b0, 1'b1, 1'b1 }; // SYS
-      // 4'h3: // DSW1
-      // 4'h4: // DSW2
-      // 4'h5: // P3
-      // 4'h6: // P4
+      4'h0: port_data <= P1;
+      4'h1: port_data <= P2;
+      4'h2: port_data <= { 4'd0, vb, SERVICE, COIN2, COIN1 }; // SYS
+      4'h3: port_data <= DSW1;
+      4'h4: port_data <= DSW2;
+      4'h5: port_data <= P3;
+      4'h6: port_data <= P4;
       4'h8: { sp_bank, bg_bank, scrollx_hi, flip_screen } <= DBo; // scrollx hi
       4'h9: { scrolly_hi, tile_offset, unknown_counter, main_bank } <= DBo[6:0];
       4'hb: begin irq_ack <= DBo; int_reset <= 1'b1; end // irq_ack
