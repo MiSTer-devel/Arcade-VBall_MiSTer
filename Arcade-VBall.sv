@@ -179,7 +179,7 @@ assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 // assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
 
-// assign VGA_SL = 0;
+assign VGA_SL = 0;
 assign VGA_F1 = 0;
 assign VGA_SCALER = 0;
 
@@ -208,13 +208,12 @@ localparam CONF_STR = {
 	"F,BIN,Load File;",
 	"-;",
 	"-;",
-	"O7,Service,Off,On;",
 	"-;",
 	"DIP;",
 	"-;",
 	"T0,Reset;",
 	"R0,Reset and close OSD;",
-	"J1,A,B,Start1P,Start2P,CoinA,CoinB;",
+	"J1,Start1P,Start2P,A,B,CoinA,CoinB,Service;",
 	"V,v",`BUILD_DATE
 };
 
@@ -277,7 +276,7 @@ pll pll
 reg clk_6502_en;
 reg [6:0] clk_div;
 always @(posedge clk_sys) begin
-	if (clk_div == 7'd47) begin
+	if (clk_div == 7'd19) begin
 		clk_6502_en <= 1'b1;
 		clk_div <= 6'd0;
 	end
@@ -290,7 +289,7 @@ end
 reg clk_vid_en;
 reg [5:0] clk_div2;
 always @(posedge clk_sys) begin
-	if (clk_div2 == 6'd16) begin
+	if (clk_div2 == 6'd18) begin
 		clk_vid_en <= 1'b1;
 		clk_div2 <= 6'd0;
 	end
@@ -308,19 +307,19 @@ reg [7:0] sw[8];
 always @(posedge clk_sys)
 	if (ioctl_wr && (ioctl_index==254) && !ioctl_addr[24:3]) sw[ioctl_addr[2:0]] <= ioctl_dout;
 
-wire SERVICE = status[7];
+wire SERVICE = ~status[7];
 wire [7:0] P1 = {
-	joystick_0[5],
-	1'b1,
-	joystick_0[7],
-	joystick_0[6],
-	joystick_0[3],
-	joystick_0[2],
-	joystick_0[1],
-	joystick_0[0]
+	joystick_0[4], // start
+	joystick_0[5], // select
+	joystick_0[7], // B
+	joystick_0[6], // A
+	joystick_0[0], // down
+	joystick_0[1], // up
+	joystick_0[2], // left
+	joystick_0[3] // right
 };
-wire COIN1 = joystick_0[9];
-wire COIN2 = joystick_0[10];
+wire COIN1 = joystick_0[8]; // R2?
+wire COIN2 = joystick_0[9]; // ?
 reg [7:0] P2 = 8'hff;
 reg [7:0] P3 = 8'hff;
 reg [7:0] P4 = 8'hff;
