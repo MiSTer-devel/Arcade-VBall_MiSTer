@@ -275,7 +275,7 @@ pll pll
 
 wire cen_main, cen_snd;
 clk_en #(20) clk_en_6502(clk_sys, cen_main);
-clk_en #(1) clk_en_snd(clk_snd, cen_snd);
+clk_en #(3) clk_en_snd(clk_snd, cen_snd);
 
 // reg cen_snd;
 // always @(posedge clk_snd)
