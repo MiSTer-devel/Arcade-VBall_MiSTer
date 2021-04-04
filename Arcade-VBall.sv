@@ -184,8 +184,8 @@ assign VGA_F1 = 0;
 assign VGA_SCALER = 0;
 
 assign AUDIO_S = 0;
-assign AUDIO_L = 0;
-assign AUDIO_R = 0;
+// assign AUDIO_L = 0;
+// assign AUDIO_R = 0;
 assign AUDIO_MIX = 0;
 
 assign LED_DISK = 0;
@@ -263,41 +263,24 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 
 ///////////////////////   CLOCKS   ///////////////////////////////
 
-wire clk_sys, clk_vid, locked;
+wire clk_sys, clk_snd, locked;
 pll pll
 (
 	.refclk(CLK_50M),
 	.rst(0),
 	.outclk_0(clk_sys),
-	.outclk_1(clk_vid),
+	.outclk_1(clk_snd),
 	.locked(locked)
 );
 
-reg clk_6502_en;
-reg [6:0] clk_div;
-always @(posedge clk_sys) begin
-	if (clk_div == 7'd19) begin
-		clk_6502_en <= 1'b1;
-		clk_div <= 6'd0;
-	end
-	else begin
-		clk_6502_en <= 1'b0;
-		clk_div <= clk_div + 6'd1;
-	end
-end
+wire cen_main, cen_snd;
+clk_en #(20) clk_en_6502(clk_sys, cen_main);
+clk_en #(1) clk_en_snd(clk_snd, cen_snd);
 
-reg clk_vid_en;
-reg [5:0] clk_div2;
-always @(posedge clk_sys) begin
-	if (clk_div2 == 6'd18) begin
-		clk_vid_en <= 1'b1;
-		clk_div2 <= 6'd0;
-	end
-	else begin
-		clk_vid_en <= 1'b0;
-		clk_div2 <= clk_div2 + 6'd1;
-	end
-end
+// reg cen_snd;
+// always @(posedge clk_snd)
+// 	cen_snd <= ~cen_snd;
+// clk_en #() clk_en_snd2(clk_snd, cen_snd);
 
 wire reset = RESET | status[0] | buttons[1] | ioctl_download;
 
@@ -328,12 +311,14 @@ vball vball
 (
 	.reset(reset),
 	.clk_sys(clk_sys),
-	.clk_vid(clk_vid_en),
-	.clk(clk_6502_en),
+	// .clk_vid(cen_main),
+	.clk_en(cen_main),
+	.clk_snd(clk_snd),
+	.cen_snd(cen_snd),
 
 	.idata(ioctl_dout),
 	.iaddr(ioctl_addr),
-	.iload(ioctl_download),
+	.iload(ioctl_download & ~ioctl_index),
 
 	.red(red),
 	.green(green),
@@ -347,6 +332,9 @@ vball vball
 	.gfx_addr(gfx_addr),
 	.gfx_data(gfx_data),
 	.gfx_read(gfx_read),
+
+	.audio_l(AUDIO_L),
+	.audio_r(AUDIO_R),
 
 	.P1(~P1),
 	.P2(P2),
@@ -362,7 +350,7 @@ vball vball
 
 );
 
-assign CE_PIXEL = clk_vid_en;
+assign CE_PIXEL = cen_main;
 assign CLK_VIDEO = clk_sys;
 
 wire HBlank, VBlank;

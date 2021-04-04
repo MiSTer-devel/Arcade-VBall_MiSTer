@@ -2,8 +2,11 @@
 module vball(
   input reset,
   input clk_sys,
-  input clk_vid,
-  input clk,
+  // input clk_vid,
+  input clk_en,
+  input clk_snd,
+  input cen_snd,
+  //input cen_snd2,
 
   input [7:0] idata,
   input [24:0] iaddr,
@@ -20,6 +23,9 @@ module vball(
   output gfx_read,
   output [18:0] gfx_addr,
   input [7:0] gfx_data,
+
+  output [15:0] audio_l,
+  output [15:0] audio_r,
 
   input [7:0] P1,
   input [7:0] P2,
@@ -100,7 +106,7 @@ always @(posedge clk_sys) begin
       4'h9: { scrolly_hi, tile_offset, unknown_counter, main_bank } <= DBo[6:0];
       4'hb: begin irq_ack <= DBo; int_reset <= 1'b1; end // irq_ack
       4'hc: scrollx_lo <= DBo; // scrollx low
-      // 4'hd: // sound latch
+      4'hd: sound <= DBo;
       4'he: scrolly_lo <= DBo; // scrolly low
     endcase
 end
@@ -112,7 +118,7 @@ rom rom(
   .q(rom_data),
   .idata(idata),
   .iaddr(iaddr[15:0]),
-  .iload(iaddr < 25'h90000)
+  .iload(iload && iaddr < 25'h90000)
 );
 
 rom #(.addr_width(17), .data_width(8)) spr1(
@@ -122,7 +128,7 @@ rom #(.addr_width(17), .data_width(8)) spr1(
   .q(srd1),
   .idata(idata),
   .iaddr({ ~iaddr[16], iaddr[15:0] }),
-  .iload(iaddr < 25'hb0000)
+  .iload(iload && iaddr < 25'hb0000)
 );
 
 rom #(.addr_width(17), .data_width(8)) spr2(
@@ -132,7 +138,7 @@ rom #(.addr_width(17), .data_width(8)) spr2(
   .q(srd2),
   .idata(idata),
   .iaddr({ ~iaddr[16], iaddr[15:0] }),
-  .iload(iaddr < 25'hd0000)
+  .iload(iload && iaddr < 25'hd0000)
 );
 
 rom #(.addr_width(10), .data_width(8)) col1(
@@ -142,7 +148,7 @@ rom #(.addr_width(10), .data_width(8)) col1(
   .q(col1_data),
   .idata(idata),
   .iaddr(iaddr[9:0]),
-  .iload(iaddr < 25'hd0400)
+  .iload(iload && iaddr < 25'hd0400)
 );
 
 rom #(.addr_width(10), .data_width(8)) col2(
@@ -152,7 +158,7 @@ rom #(.addr_width(10), .data_width(8)) col2(
   .q(col2_data),
   .idata(idata),
   .iaddr(iaddr[9:0]),
-  .iload(iaddr < 25'hd0c00)
+  .iload(iload && iaddr < 25'hd0c00)
 );
 
 rom #(.addr_width(10), .data_width(8)) col3(
@@ -162,7 +168,7 @@ rom #(.addr_width(10), .data_width(8)) col3(
   .q(col3_data),
   .idata(idata),
   .iaddr(iaddr[9:0]),
-  .iload(iaddr < 25'hd1400)
+  .iload(iload && iaddr < 25'hd1400)
 );
 
 rom #(.addr_width(10), .data_width(8)) scol1(
@@ -172,7 +178,7 @@ rom #(.addr_width(10), .data_width(8)) scol1(
   .q(scol1_data),
   .idata(idata),
   .iaddr(iaddr[9:0]),
-  .iload(iaddr < 25'hd0800)
+  .iload(iload && iaddr < 25'hd0800)
 );
 
 rom #(.addr_width(10), .data_width(8)) scol2(
@@ -182,7 +188,7 @@ rom #(.addr_width(10), .data_width(8)) scol2(
   .q(scol2_data),
   .idata(idata),
   .iaddr(iaddr[9:0]),
-  .iload(iaddr < 25'hd1000)
+  .iload(iload && iaddr < 25'hd1000)
 );
 
 rom #(.addr_width(10), .data_width(8)) scol3(
@@ -192,7 +198,7 @@ rom #(.addr_width(10), .data_width(8)) scol3(
   .q(scol3_data),
   .idata(idata),
   .iaddr(iaddr[9:0]),
-  .iload(iaddr < 25'hd1800)
+  .iload(iload && iaddr < 25'hd1800)
 );
 
 dpram ram(
@@ -237,11 +243,11 @@ dpram attr(
   .vdata(video_attr_data)
 );
 
-always @(posedge clk)
+always @(posedge clk_en) // fix
   DBi <= rom_data | ram_data | vram_data | attr_data | port_data | spr_data;
 
 cpu6502 cpu1(
-  .clk(clk),
+  .clk(clk_en),
   .reset(reset),
   .AB(AB),
   .DI(DBi),
@@ -254,7 +260,7 @@ cpu6502 cpu1(
 
 vball_video vball_video(
 
-  .clk(clk_vid),
+  .clk(clk_en),
   .flip(flip_screen),
   .hs(hs),
   .vs(vs),
@@ -315,11 +321,103 @@ vball_bg vball_bg(
   .vb(vb)
 );
 
-always @(posedge clk) begin
-  if (nmi) nmi_latch <= 1'b1;
-  if (irq) irq_latch <= 1'b1;
-  if (int_reset && irq_ack[0]) nmi_latch <= 1'b0;
-  if (int_reset && irq_ack[1]) irq_latch <= 1'b0;
+always @(posedge clk_sys) begin
+  if (clk_en) begin
+    if (nmi) nmi_latch <= 1'b1;
+    if (irq) irq_latch <= 1'b1;
+    if (int_reset && irq_ack[0]) nmi_latch <= 1'b0;
+    if (int_reset && irq_ack[1]) irq_latch <= 1'b0;
+  end
 end
+
+/// AUDIO
+
+wire zIRQ;
+wire [7:0] zrom_data, zram_data, zDO, ym_dout;
+wire [15:0] zADDR;
+wire zWE;
+reg [7:0] sound, sound_latch;
+
+wire zrom_en = zADDR[15] == 5'b0; // 0-7fff
+wire zram_en = zADDR[15:11] == 5'b10000; // 8000-87ff
+wire ym_en = zADDR[15:11] == 5'b10001; // 8800-8fff
+wire oki_en = zADDR[15:11] == 5'b10011; // 9800-9fff
+wire sndl_en = zADDR[15:13] == 5'b101; // a000-bfff
+
+reg zNMI;
+reg [1:0] holdNMI;
+always @(posedge clk_snd) begin
+  sound_latch <= sound;
+  if (sound_latch ^ sound) holdNMI <= 2'd3;
+  if (holdNMI != 2'd0) begin
+    zNMI <= 1'b1;
+    holdNMI <= holdNMI - 2'd1;
+  end
+  else zNMI <= 1'b0;
+end
+
+wire [7:0] zDI = zrom_data | zram_data | (ym_en & ~zWE ? ym_dout : 8'd0) | (sndl_en ? sound : 8'd0);
+
+rom #(.addr_width(15), .data_width(8)) zrom(
+  .clk(clk_sys),
+  .ce(~zrom_en),
+  .addr(zADDR),
+  .q(zrom_data),
+  .idata(idata),
+  .iaddr(iaddr[14:0]),
+  .iload(iload && iaddr < 25'he8000)
+);
+
+wire [7:0] tmp;
+reg [16:0] tmp_addr;
+rom #(.addr_width(17), .data_width(8)) okirom(
+  .clk(clk_sys),
+  .ce(1'b0),
+  .addr(tmp_addr),
+  .q(tmp),
+  .idata(idata),
+  .iaddr(iaddr[16:0]),
+  .iload(iload && iaddr < 25'h108000)
+);
+
+dpram #(.addr_width(11), .data_width(8)) zram(
+  .clk(clk_sys),
+  .addr(zADDR[10:0]),
+  .din(zDO),
+  .q(zram_data),
+  .rw(zWE),
+  .ce(~zram_en)
+);
+
+jt51 jt51(
+  .rst(reset),
+  .clk(clk_snd),
+  .cen_p1(cen_snd),
+  .cs_n(~ym_en),
+  .wr_n(~zWE),
+  .a0(zADDR[0]),
+  .din(zDO),
+  .dout(ym_dout),
+  .irq_n(zIRQ),
+  .dacleft(audio_l),
+  .dacright(audio_r)
+);
+
+
+NextZ80CPU z80(
+  .DI(zDI),
+  .DO(zDO),
+  .ADDR(zADDR),
+  .WR(zWE),
+  .MREQ(),
+  .IORQ(),
+  .HALT(),
+  .M1(),
+  .CLK(clk_snd),
+  .RESET(reset),
+  .INT(~zIRQ),
+  .NMI(zNMI),
+  .WAIT()
+);
 
 endmodule

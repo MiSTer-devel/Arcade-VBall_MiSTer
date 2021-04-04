@@ -8,3 +8,8 @@ set_global_assignment -name VERILOG_FILE rtl/6502/ALU.v
 set_global_assignment -name VERILOG_FILE rtl/6502/cpu6502.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/sdram.sv
 set_global_assignment -name SYSTEMVERILOG_FILE Arcade-VBall.sv
+set_global_assignment -name VERILOG_FILE rtl/z80/NextZ80ALU.v
+set_global_assignment -name VERILOG_FILE rtl/z80/NextZ80CPU.v
+set_global_assignment -name VERILOG_FILE rtl/z80/NextZ80Reg.v
+set_global_assignment -name QIP_FILE rtl/jt51/jt51.qip
+set_global_assignment -name VERILOG_FILE rtl/clk_en.v
