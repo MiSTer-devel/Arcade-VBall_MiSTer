@@ -5,7 +5,7 @@ module vball(
   // input clk_vid,
   input clk_en,
   input clk_snd,
-  input cen_snd,
+  //input cen_snd,
   //input cen_snd2,
 
   input [7:0] idata,
@@ -102,18 +102,18 @@ always @(posedge clk_sys) begin
       4'h4: port_data <= DSW2;
       4'h5: port_data <= P3;
       4'h6: port_data <= P4;
-      4'h8: { sp_bank, bg_bank, scrollx_hi, flip_screen } <= DBo; // scrollx hi
-      4'h9: { scrolly_hi, tile_offset, unknown_counter, main_bank } <= DBo[6:0];
-      4'hb: begin irq_ack <= DBo; int_reset <= 1'b1; end // irq_ack
-      4'hc: scrollx_lo <= DBo; // scrollx low
-      4'hd: sound <= DBo;
-      4'he: scrolly_lo <= DBo; // scrolly low
+      4'h8: if (WE) { sp_bank, bg_bank, scrollx_hi, flip_screen } <= DBo; // scrollx hi
+      4'h9: if (WE) { scrolly_hi, tile_offset, unknown_counter, main_bank } <= DBo[6:0];
+      4'hb: if (WE) begin irq_ack <= DBo; int_reset <= 1'b1; end // irq_ack
+      4'hc: if (WE) scrollx_lo <= DBo; // scrollx low
+      4'hd: if (WE) sound <= DBo;
+      4'he: if (WE) scrolly_lo <= DBo; // scrolly low
     endcase
 end
 
 rom rom(
   .clk(clk_sys),
-  .ce(~rom_en),
+  .ce_n(~rom_en),
   .addr(bank_en ? { 1'b0, main_bank, AB[13:0] } : AB),
   .q(rom_data),
   .idata(idata),
@@ -123,7 +123,7 @@ rom rom(
 
 rom #(.addr_width(17), .data_width(8)) spr1(
   .clk(clk_sys),
-  .ce(1'b0),
+  .ce_n(1'b0),
   .addr(sra),
   .q(srd1),
   .idata(idata),
@@ -133,7 +133,7 @@ rom #(.addr_width(17), .data_width(8)) spr1(
 
 rom #(.addr_width(17), .data_width(8)) spr2(
   .clk(clk_sys),
-  .ce(1'b0),
+  .ce_n(1'b0),
   .addr(sra),
   .q(srd2),
   .idata(idata),
@@ -143,7 +143,7 @@ rom #(.addr_width(17), .data_width(8)) spr2(
 
 rom #(.addr_width(10), .data_width(8)) col1(
   .clk(clk_sys),
-  .ce(1'b0),
+  .ce_n(1'b0),
   .addr(bg_col_addr),
   .q(col1_data),
   .idata(idata),
@@ -153,7 +153,7 @@ rom #(.addr_width(10), .data_width(8)) col1(
 
 rom #(.addr_width(10), .data_width(8)) col2(
   .clk(clk_sys),
-  .ce(1'b0),
+  .ce_n(1'b0),
   .addr(bg_col_addr),
   .q(col2_data),
   .idata(idata),
@@ -163,7 +163,7 @@ rom #(.addr_width(10), .data_width(8)) col2(
 
 rom #(.addr_width(10), .data_width(8)) col3(
   .clk(clk_sys),
-  .ce(1'b0),
+  .ce_n(1'b0),
   .addr(bg_col_addr),
   .q(col3_data),
   .idata(idata),
@@ -173,7 +173,7 @@ rom #(.addr_width(10), .data_width(8)) col3(
 
 rom #(.addr_width(10), .data_width(8)) scol1(
   .clk(clk_sys),
-  .ce(1'b0),
+  .ce_n(1'b0),
   .addr(sp_col_addr),
   .q(scol1_data),
   .idata(idata),
@@ -183,7 +183,7 @@ rom #(.addr_width(10), .data_width(8)) scol1(
 
 rom #(.addr_width(10), .data_width(8)) scol2(
   .clk(clk_sys),
-  .ce(1'b0),
+  .ce_n(1'b0),
   .addr(sp_col_addr),
   .q(scol2_data),
   .idata(idata),
@@ -193,7 +193,7 @@ rom #(.addr_width(10), .data_width(8)) scol2(
 
 rom #(.addr_width(10), .data_width(8)) scol3(
   .clk(clk_sys),
-  .ce(1'b0),
+  .ce_n(1'b0),
   .addr(sp_col_addr),
   .q(scol3_data),
   .idata(idata),
@@ -338,18 +338,18 @@ wire [15:0] zADDR;
 wire zWE;
 reg [7:0] sound, sound_latch;
 
-wire zrom_en = zADDR[15] == 5'b0; // 0-7fff
+wire zrom_en = zADDR[15] == 1'b0; // 0-7fff
 wire zram_en = zADDR[15:11] == 5'b10000; // 8000-87ff
 wire ym_en = zADDR[15:11] == 5'b10001; // 8800-8fff
 wire oki_en = zADDR[15:11] == 5'b10011; // 9800-9fff
-wire sndl_en = zADDR[15:13] == 5'b101; // a000-bfff
+wire sndl_en = zADDR[15:13] == 3'b101; // a000-bfff
 
 reg zNMI;
 reg [1:0] holdNMI;
 always @(posedge clk_snd) begin
   sound_latch <= sound;
   if (sound_latch ^ sound) holdNMI <= 2'd3;
-  if (holdNMI != 2'd0) begin
+  if (holdNMI > 2'd0) begin
     zNMI <= 1'b1;
     holdNMI <= holdNMI - 2'd1;
   end
@@ -360,7 +360,7 @@ wire [7:0] zDI = zrom_data | zram_data | (ym_en & ~zWE ? ym_dout : 8'd0) | (sndl
 
 rom #(.addr_width(15), .data_width(8)) zrom(
   .clk(clk_sys),
-  .ce(~zrom_en),
+  .ce_n(~zrom_en),
   .addr(zADDR),
   .q(zrom_data),
   .idata(idata),
@@ -372,7 +372,7 @@ wire [7:0] tmp;
 reg [16:0] tmp_addr;
 rom #(.addr_width(17), .data_width(8)) okirom(
   .clk(clk_sys),
-  .ce(1'b0),
+  .ce_n(1'b0),
   .addr(tmp_addr),
   .q(tmp),
   .idata(idata),
@@ -389,10 +389,16 @@ dpram #(.addr_width(11), .data_width(8)) zram(
   .ce(~zram_en)
 );
 
+
+reg jt51_clk_div;
+always @(posedge clk_snd) jt51_clk_div <= !jt51_clk_div;
+
 jt51 jt51(
   .rst(reset),
+
   .clk(clk_snd),
-  .cen_p1(cen_snd),
+  .cen_p1(jt51_clk_div),
+
   .cs_n(~ym_en),
   .wr_n(~zWE),
   .a0(zADDR[0]),

@@ -6,7 +6,7 @@ module rom
 )
 (
   input clk,
-  input ce,
+  input ce_n,
   input [addr_width-1:0] addr,
   output [data_width-1:0] q,
 
@@ -18,7 +18,7 @@ module rom
 reg [data_width-1:0] data;
 reg [data_width-1:0] mem[(1<<addr_width)-1:0];
 
-assign q = ~ce ? data : 0;
+assign q = ~ce_n ? data : 0;
 
 always @(posedge clk)
   data <= mem[addr];

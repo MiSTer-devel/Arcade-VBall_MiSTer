@@ -213,8 +213,7 @@ localparam CONF_STR = {
 	"-;",
 	"T0,Reset;",
 	"R0,Reset and close OSD;",
-	"J1,Start1P,Start2P,Start3P,Start4P,A,B,CoinA,CoinB,Service;",
-	"DEFMRA,vball.mra;", // default MRA to be used when core is uploaded by USB blaster (debug)
+	"J1,Start1P,Start2P,A,B,CoinA,CoinB,Service;",
 	"V,v",`BUILD_DATE
 };
 
@@ -279,9 +278,9 @@ pll pll
 	.locked(locked)
 );
 
-wire cen_main, cen_snd;
+wire cen_main;//, cen_snd;
 clk_en #(20) clk_en_6502(clk_sys, cen_main);
-clk_en #(3) clk_en_snd(clk_snd, cen_snd);
+//clk_en #(3) clk_en_snd(clk_snd, cen_snd);
 
 // reg cen_snd;
 // always @(posedge clk_snd)
@@ -298,47 +297,47 @@ always @(posedge clk_sys)
 
 wire SERVICE = ~status[7];
 wire [7:0] P1 = {
-	joystick_0[8], // start1p
-	1'b0,				// Unknown?
-	joystick_0[5], // B
-	joystick_0[4],	// A
+	joystick_0[4], // start1p
+	joystick_0[5], // start1p
+	joystick_0[7], // B
+	joystick_0[6],	// A
+	joystick_0[2], // down
+	joystick_0[3], // up
 	joystick_0[1], // left
 	joystick_0[0], // right
-	joystick_0[2], // down
-	joystick_0[3] 	// up
 };
 
 wire [7:0] P2 = {
-	joystick_0[9], // start2p
-	1'b0,				// Unknown?
-	joystick_1[5], // B
-	joystick_1[4],	// A
+	joystick_1[4], // start2p
+	joystick_1[5], // start1p
+	joystick_1[7], // B
+	joystick_1[6],	// A
+	joystick_1[2], // down
+	joystick_1[3], // up
 	joystick_1[1], // left
 	joystick_1[0], // right
-	joystick_1[2], // down
-	joystick_1[3] 	// up
 };
 
 wire [7:0] P3 = {
-	joystick_0[10],// start3p
-	1'b0,				// Unknown?
+	joystick_2[4],// start3p
 	joystick_2[5], // B
-	joystick_2[4],	// A
+	joystick_2[7], // B
+	joystick_2[6],	// A
+	joystick_2[2], // down
+	joystick_2[3], // up
 	joystick_2[1], // left
 	joystick_2[0], // right
-	joystick_2[2], // down
-	joystick_2[3] 	// up
 };
 
 wire [7:0] P4 = {
-	joystick_0[11],// start4p
-	1'b0,				// Unknown?
+	joystick_0[4],// start4p
 	joystick_3[5], // B
-	joystick_3[4],	// A
+	joystick_3[7], // B
+	joystick_3[6],	// A
+	joystick_3[2], // down
+	joystick_3[3], // up
 	joystick_3[1], // left
 	joystick_3[0], // right
-	joystick_3[2], // down
-	joystick_3[3] 	// up
 };
 wire COIN1 = joystick_0[8]; // R2?
 wire COIN2 = joystick_0[9]; // ?
@@ -350,7 +349,7 @@ vball vball
 	// .clk_vid(cen_main),
 	.clk_en(cen_main),
 	.clk_snd(clk_snd),
-	.cen_snd(cen_snd),
+	//.cen_snd(cen_snd),
 
 	.idata(ioctl_dout),
 	.iaddr(ioctl_addr),
