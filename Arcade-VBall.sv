@@ -183,7 +183,7 @@ assign VGA_SL = 0;
 assign VGA_F1 = 0;
 assign VGA_SCALER = 0;
 
-assign AUDIO_S = 0;
+assign AUDIO_S = 1;
 // assign AUDIO_L = 0;
 // assign AUDIO_R = 0;
 assign AUDIO_MIX = 0;
@@ -213,7 +213,8 @@ localparam CONF_STR = {
 	"-;",
 	"T0,Reset;",
 	"R0,Reset and close OSD;",
-	"J1,Start1P,Start2P,A,B,CoinA,CoinB,Service;",
+	"J1,Start1P,Start2P,Start3P,Start4P,A,B,CoinA,CoinB,Service;",
+	"DEFMRA,vball.mra;", // default MRA to be used when core is uploaded by USB blaster (debug)
 	"V,v",`BUILD_DATE
 };
 
@@ -232,6 +233,8 @@ wire        ioctl_wait;
 
 wire [15:0] joystick_0;
 wire [15:0] joystick_1;
+wire [15:0] joystick_2;
+wire [15:0] joystick_3;
 
 hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 (
@@ -257,7 +260,9 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	.ioctl_index(ioctl_index),
 
 	.joystick_0(joystick_0),
-	.joystick_1(joystick_1)
+	.joystick_1(joystick_1),
+	.joystick_2(joystick_2),
+	.joystick_3(joystick_3)
 
 );
 
@@ -270,6 +275,7 @@ pll pll
 	.rst(0),
 	.outclk_0(clk_sys),
 	.outclk_1(clk_snd),
+	//.outclk_2(clk_cpu),
 	.locked(locked)
 );
 
@@ -292,20 +298,50 @@ always @(posedge clk_sys)
 
 wire SERVICE = ~status[7];
 wire [7:0] P1 = {
-	joystick_0[4], // start
-	joystick_0[5], // select
-	joystick_0[7], // B
-	joystick_0[6], // A
-	joystick_0[0], // down
-	joystick_0[1], // up
-	joystick_0[2], // left
-	joystick_0[3] // right
+	joystick_0[8], // start1p
+	1'b0,				// Unknown?
+	joystick_0[5], // B
+	joystick_0[4],	// A
+	joystick_0[1], // left
+	joystick_0[0], // right
+	joystick_0[2], // down
+	joystick_0[3] 	// up
+};
+
+wire [7:0] P2 = {
+	joystick_0[9], // start2p
+	1'b0,				// Unknown?
+	joystick_1[5], // B
+	joystick_1[4],	// A
+	joystick_1[1], // left
+	joystick_1[0], // right
+	joystick_1[2], // down
+	joystick_1[3] 	// up
+};
+
+wire [7:0] P3 = {
+	joystick_0[10],// start3p
+	1'b0,				// Unknown?
+	joystick_2[5], // B
+	joystick_2[4],	// A
+	joystick_2[1], // left
+	joystick_2[0], // right
+	joystick_2[2], // down
+	joystick_2[3] 	// up
+};
+
+wire [7:0] P4 = {
+	joystick_0[11],// start4p
+	1'b0,				// Unknown?
+	joystick_3[5], // B
+	joystick_3[4],	// A
+	joystick_3[1], // left
+	joystick_3[0], // right
+	joystick_3[2], // down
+	joystick_3[3] 	// up
 };
 wire COIN1 = joystick_0[8]; // R2?
 wire COIN2 = joystick_0[9]; // ?
-reg [7:0] P2 = 8'hff;
-reg [7:0] P3 = 8'hff;
-reg [7:0] P4 = 8'hff;
 
 vball vball
 (
@@ -318,7 +354,7 @@ vball vball
 
 	.idata(ioctl_dout),
 	.iaddr(ioctl_addr),
-	.iload(ioctl_download & ~ioctl_index),
+	.iload(ioctl_wr && ioctl_download && (ioctl_index==0)),
 
 	.red(red),
 	.green(green),
@@ -337,9 +373,9 @@ vball vball
 	.audio_r(AUDIO_R),
 
 	.P1(~P1),
-	.P2(P2),
-	.P3(P3),
-	.P4(P4),
+	.P2(~P2),
+	.P3(~P3),
+	.P4(~P4),
 
 	.COIN1(COIN1),
 	.COIN2(COIN2),
@@ -385,7 +421,7 @@ sdram sdram
 	.dout(gfx_data),
 	.din(ioctl_dout),
 	.rd(gfx_read),
-	.we(ioctl_wr),
+	.we(ioctl_index == 0 && ioctl_wr),
 	.ready()
 );
 
