@@ -332,7 +332,6 @@ end
 
 /// AUDIO
 
-wire zIRQ;
 wire [7:0] zrom_data, zram_data, zDO, ym_dout;
 wire [15:0] zADDR;
 wire zWE;
@@ -344,16 +343,28 @@ wire ym_en = zADDR[15:11] == 5'b10001; // 8800-8fff
 wire oki_en = zADDR[15:11] == 5'b10011; // 9800-9fff
 wire sndl_en = zADDR[15:13] == 3'b101; // a000-bfff
 
-reg zNMI;
-reg [1:0] holdNMI;
-always @(posedge clk_snd) begin
+(*keep*)wire JT51IRQ;
+(*noprune*) reg LJT51IRQ;
+wire zIORQ, zM1;
+reg zNMI, zIRQ;
+//reg [1:0] holdNMI;
+always @(posedge clk_sys) begin
   sound_latch <= sound;
-  if (sound_latch ^ sound) holdNMI <= 2'd3;
+  LJT51IRQ <= JT51IRQ;
+  if (sound_latch ^ sound) zNMI <= 1'b1; //holdNMI <= 2'd3;
+  if ((JT51IRQ ^ LJT51IRQ) && ~JT51IRQ) zIRQ <= 1'b1;
+  if (zIORQ & zM1) begin
+    zNMI <= 1'b0;
+	 zIRQ <= 1'b0;
+  end
+
+  /*
   if (holdNMI > 2'd0) begin
     zNMI <= 1'b1;
     holdNMI <= holdNMI - 2'd1;
   end
   else zNMI <= 1'b0;
+  */
 end
 
 wire [7:0] zDI = zrom_data | zram_data | (ym_en & ~zWE ? ym_dout : 8'd0) | (sndl_en ? sound : 8'd0);
@@ -404,7 +415,7 @@ jt51 jt51(
   .a0(zADDR[0]),
   .din(zDO),
   .dout(ym_dout),
-  .irq_n(zIRQ),
+  .irq_n(JT51IRQ),
   .dacleft(audio_l),
   .dacright(audio_r)
 );
@@ -421,7 +432,7 @@ NextZ80CPU z80(
   .M1(),
   .CLK(clk_snd),
   .RESET(reset),
-  .INT(~zIRQ),
+  .INT(zIRQ),
   .NMI(zNMI),
   .WAIT()
 );
