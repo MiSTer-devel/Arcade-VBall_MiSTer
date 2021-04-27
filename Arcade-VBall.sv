@@ -267,21 +267,28 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 
 ///////////////////////   CLOCKS   ///////////////////////////////
 
-wire clk_sys, clk_snd, locked;
+wire clk_sys, locked;
 pll pll
 (
 	.refclk(CLK_50M),
 	.rst(0),
 	.outclk_0(clk_sys),
-	.outclk_1(clk_snd),
+	//.outclk_1(clk_snd),
 	//.outclk_2(clk_cpu),
 	.locked(locked)
 );
 
-wire cen_main;//, cen_snd;
+wire cen_main, cen_snd;
 clk_en #(20) clk_en_6502(clk_sys, cen_main);
-//clk_en #(3) clk_en_snd(clk_snd, cen_snd);
+clk_en #(7) clk_en_snd(clk_snd, cen_snd);
 
+reg clk_snd;
+reg [1:0] cnt;
+always @(posedge clk_sys) begin
+  cnt <= cnt + 2'd1;
+  if (cnt == 2'd3) clk_snd <= ~clk_snd;
+end
+  
 // reg cen_snd;
 // always @(posedge clk_snd)
 // 	cen_snd <= ~cen_snd;
@@ -349,7 +356,7 @@ vball vball
 	// .clk_vid(cen_main),
 	.clk_en(cen_main),
 	.clk_snd(clk_snd),
-	//.cen_snd(cen_snd),
+	.cen_snd(cen_snd),
 
 	.idata(ioctl_dout),
 	.iaddr(ioctl_addr),
