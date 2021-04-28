@@ -2,12 +2,10 @@
 module vball(
   input reset,
   input clk_sys,
-  // input clk_vid,
   input clk_en,
   input clk_snd,
   input cen_snd,
-  //input cen_snd2,
-
+ 
   input [7:0] idata,
   input [24:0] iaddr,
   input iload,
@@ -344,24 +342,17 @@ wire oki_en = zADDR[15:11] == 5'b10011; // 9800-9fff
 wire sndl_en = zADDR[15:13] == 3'b101; // a000-bfff
 
 (*keep*)wire JT51IRQ;
-//(*noprune*) reg LJT51IRQ;
 wire zIORQ, zM1;
-reg zNMI, /*zIRQ,*/ zint_reset;
-//reg [3:0] irqexp, nmiexp;
+reg zNMI, zint_reset;
 always @(posedge clk_snd) begin
   if (cen_snd) begin
     sound_latch <= sound;
-    //LJT51IRQ <= JT51IRQ;
     if (sound_latch ^ sound) begin
       zNMI <= 1'b1;
-    //  nmiexp <= 4'd15;
     end
-    //if (nmiexp > 0) nmiexp <= nmiexp - 4'd1;
-   // if (nmiexp == 0 && zNMI == 1'b1) zNMI <= 1'b0;
     if (zint_reset) begin
       zNMI <= 1'b0;
-	   //zIRQ <= 1'b0;
-    end
+	 end
   end
 end
 
@@ -403,15 +394,9 @@ dpram #(.addr_width(11), .data_width(8)) zram(
   .ce(~zram_en)
 );
 
-
-//reg jt51_clk_div;
-//always @(posedge clk_snd) jt51_clk_div <= !jt51_clk_div;
-
 jt51 jt51(
   .rst(reset),
 
-//  .clk(clk_snd),
-//  .cen_p1(jt51_clk_div),
   .clk(clk_snd),
   .cen_p1(cen_snd),
   
@@ -424,23 +409,6 @@ jt51 jt51(
   .xleft(audio_l),
   .xright(audio_r)
 );
-
-
-//NextZ80CPU z80(
-//  .DI(zDI),
-//  .DO(zDO),
-//  .ADDR(zADDR),
-//  .WR(zWE),
-//  .MREQ(),
-//  .IORQ(zIORQ),
-//  .HALT(),
-//  .M1(zM1),
-//  .CLK(clk_snd),
-//  .RESET(reset),
-//  .INT(zIRQ),
-//  .NMI(zNMI),
-//  .WAIT()
-//);
 
 
 T80se T80se(
@@ -463,27 +431,5 @@ T80se T80se(
 	.DI(zDI),
 	.DO(zDO)
 );
-
-
-/*
-tv80s tv80s(
-	.reset_n(~reset),
-	.clk(clk_snd),
-	.wait_n(1'b1),
-	.int_n(~zIRQ),
-	.nmi_n(~zNMI),
-	.busrq_n(1'b1),
-	.m1_n(zM1),
-	.mreq_n(),
-	.iorq_n(zIORQ),
-	.rd_n(),
-	.wr_n(zWE),
-	.rfsh_n(),
-	.busak_n(),
-	.A(zADDR),
-	.di(zDI),
-	.dout(zDO)
-);
-*/
 
 endmodule

@@ -273,26 +273,23 @@ pll pll
 	.refclk(CLK_50M),
 	.rst(0),
 	.outclk_0(clk_sys),
-	//.outclk_1(clk_snd),
-	//.outclk_2(clk_cpu),
 	.locked(locked)
 );
 
+
 wire cen_main, cen_snd;
 clk_en #(20) clk_en_6502(clk_sys, cen_main);
-clk_en #(7) clk_en_snd(clk_snd, cen_snd);
+clk_en #(4) clk_en_snd(clk_snd, cen_snd);
 
 reg clk_snd;
-reg [1:0] cnt;
+reg [2:0] cnt;
 always @(posedge clk_sys) begin
-  cnt <= cnt + 2'd1;
-  if (cnt == 2'd3) clk_snd <= ~clk_snd;
+  cnt <= cnt + 3'd1;
+  if (cnt == 3'd4) begin
+    cnt <= 3'd0;
+	 clk_snd <= ~clk_snd;
+  end
 end
-  
-// reg cen_snd;
-// always @(posedge clk_snd)
-// 	cen_snd <= ~cen_snd;
-// clk_en #() clk_en_snd2(clk_snd, cen_snd);
 
 wire reset = RESET | status[0] | buttons[1] | ioctl_download;
 
@@ -353,7 +350,6 @@ vball vball
 (
 	.reset(reset),
 	.clk_sys(clk_sys),
-	// .clk_vid(cen_main),
 	.clk_en(cen_main),
 	.clk_snd(clk_snd),
 	.cen_snd(cen_snd),
