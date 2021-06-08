@@ -177,7 +177,7 @@ assign USER_OUT = '1;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 // assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
-assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
+// assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
 
 assign VGA_SL = 0;
 assign VGA_F1 = 0;
@@ -188,6 +188,7 @@ assign AUDIO_S = 1;
 // assign AUDIO_R = 0;
 assign AUDIO_MIX = 0;
 
+assign LED_USER = 0;
 assign LED_DISK = 0;
 assign LED_POWER = 0;
 assign BUTTONS = 0;
@@ -211,6 +212,7 @@ localparam CONF_STR = {
 	"-;",
 	"DIP;",
 	"-;",
+	"T7,Service;",
 	"T0,Reset;",
 	"R0,Reset and close OSD;",
 	"J1,Start1P,Start2P,A,B,CoinA,CoinB,Service;",
@@ -273,9 +275,11 @@ pll pll
 	.refclk(CLK_50M),
 	.rst(0),
 	.outclk_0(clk_sys),
+	.outclk_1(DDRAM_CLK),
 	.locked(locked)
 );
 
+//assign DDRAM_CLK = clk_sys;
 
 wire cen_main, cen_snd;
 clk_en #(20) clk_en_6502(clk_sys, cen_main);
@@ -367,9 +371,14 @@ vball vball
 	.hb(HBlank),
 	.vb(VBlank),
 
-	.gfx_addr(gfx_addr),
-	.gfx_data(gfx_data),
-	.gfx_read(gfx_read),
+	.bg_addr(bg_addr),
+	.bg_data(bg_data),
+	.bg_read(bg_read),
+
+	.pcm_rom_addr(pcm_rom_addr),
+	.pcm_rom_data(pcm_rom_data),
+	.pcm_rom_read(pcm_rom_read),
+	.pcm_rom_data_rdy(pcm_rom_data_rdy),
 
 	.audio_l(AUDIO_L),
 	.audio_r(AUDIO_R),
@@ -401,9 +410,15 @@ assign VGA_G  = { green, 4'd0 };
 assign VGA_R  = { red, 4'd0 };
 assign VGA_B  = { blue, 4'd0 };
 
-wire [18:0] gfx_addr;
-wire [7:0] gfx_data;
-wire gfx_read;
+wire [18:0] bg_addr;
+wire [7:0] bg_data;
+wire bg_read;
+
+wire [63:0] ddram_data;
+wire [17:0] pcm_rom_addr;
+wire [7:0] pcm_rom_data = ddram_data[(pcm_rom_addr[2:0]*8)+:8];
+wire pcm_rom_read;
+wire pcm_rom_data_rdy;
 
 //wire [2:0] fx = status[17:15];
 
@@ -413,18 +428,99 @@ wire gfx_read;
 //   .RGB_in({ red, green, blue })
 // );
 
+//wire rom_download = ioctl_download && ioctl_index == 0;
+
+//reg port1_req, port2_req;
+//always @(posedge clk_io) begin
+//	if (rom_download) begin
+//		port1_req <= ~port1_req;
+//		if (ioctl_addr >= 25'he8000) port2_req <= ~port2_req;
+//	end
+//end
+
+//reg [23:0] pcm_load_addr;
+//reg [23:0] bg_load_addr;
+//reg [7:0] ioctl_data;
+//always @(posedge clk_sys) begin
+//   pcm_load_addr <= ioctl_addr - 23'he8000;
+//	bg_load_addr <= ioctl_addr;
+//	ioctl_data <= ioctl_dout;
+//end
+
+//sdram sdram
+//(
+//	.*,
+//	.init_n(locked),
+//	.clk(clk_sys),
+//
+//
+//	.port1_req(port1_req),
+//	.port1_ack(),
+//	.port1_a(bg_load_addr),
+//	.port1_ds({ bg_load_addr[0], ~bg_load_addr[0] }),
+//	.port1_we(rom_download),
+//	.port1_d({ ioctl_data, ioctl_data }),
+//	.port1_q(),
+//
+//	.bg_addr(bg_addr),
+//	.bg_q(bg_data),
+//
+//	.port2_req(port2_req),
+//	.port2_ack(),
+//	.port2_a(pcm_load_addr),
+//	.port2_ds({ pcm_load_addr[0], ~pcm_load_addr[0] }),
+//	.port2_we(rom_download),
+//	.port2_d({ ioctl_data, ioctl_data }),
+//	.port2_q(),
+//
+//	.pcm_addr(pcm_rom_addr),
+//	.pcm_q(pcm_rom_data),
+//	.pcm_rom_read(pcm_rom_read),
+//	.pcm_rom_data_rdy(pcm_rom_data_rdy),
+//
+//	.cpu2_addr(),
+//	.cpu2_q(),
+//	.cpu3_addr(),
+//	.cpu3_q()
+//
+//	// .addr(ioctl_download ? ioctl_addr : sdram_addr),
+//	// .wtbt(0),
+//	// .dout(sdram_data),
+//	// .din(ioctl_dout),
+//	// .rd(sdram_read),
+//	// .we(ioctl_index == 0 && ioctl_wr),
+//	// .ready()
+//);
+
 sdram sdram
 (
 	.*,
 	.init(~locked),
 	.clk(clk_sys),
-	.addr(ioctl_download ? ioctl_addr : gfx_addr),
+	.addr(ioctl_download ? ioctl_addr : bg_addr),
 	.wtbt(0),
-	.dout(gfx_data),
+	.dout(bg_data),
 	.din(ioctl_dout),
-	.rd(gfx_read),
+	.rd(bg_read),
 	.we(ioctl_index == 0 && ioctl_wr),
 	.ready()
+);
+
+
+// wire [63:0] ddram_data;
+// wire ddram_req;
+// wire ddram_rdy;
+
+ddram ddram
+(
+	.*,
+
+	.ch1_addr(pcm_rom_addr),
+	.ch1_dout(ddram_data),
+	.ch1_din(64'b0),
+	.ch1_rnw(1'b1),
+	.ch1_req(pcm_rom_read),
+	.ch1_ready(pcm_rom_data_rdy)
 );
 
 endmodule

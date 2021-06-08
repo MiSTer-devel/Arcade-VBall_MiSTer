@@ -7,15 +7,15 @@
 	<manufacturer>bootleg</manufacturer>
 	<rbf>vball</rbf>
 	<switches default="ff,ff">
-                <!-- <dip bits="0,1" name="Difficulty" ids="VeryHard,Hard,Easy,Medium"/> -->
-                <!-- <dip bits="2,3" name="SP Game Time" ids="1:15,1:30,2:00,1:45"/> -->
-                <!-- <dip bits="4,5" name="Start Buttons (4-player)" ids="Normal,Button B,Button A,Normal"/> -->
-                <!-- <dip bits="6" name="PL 1/4" ids="Rotate90,Normal"/> -->
-                <!-- <dip bits="7" name="Player Mode" ids="4 Players,2 Players"/> -->
-                <!-- <dip bits="8,10" name="CoinA" ids="4C1C,3C1C,2C1C,1C1C,1C2C,1C3C,1C4C,1C5C"/> -->
-                <!-- <dip bits="11,13" name="CoinB" ids="4C1C,3C1C,2C1C,1C1C,1C2C,1C3C,1C4C,1C5C"/> -->
-                <!-- <dip bits="14" name="Flip Screen" ids="Off,On"/> -->
-                <!-- <dip bits="15" name="Demo Sounds" ids="Off,On"/> -->
+                <dip bits="0,1" name="Difficulty" ids="VeryHard,Hard,Easy,Medium"/>
+                <dip bits="2,3" name="SP Game Time" ids="1:15,1:30,2:00,1:45"/>
+                <dip bits="4,5" name="Start Buttons (4-player)" ids="Normal,Button B,Button A,Normal"/>
+                <dip bits="6" name="PL 1/4" ids="Rotate90,Normal"/>
+                <dip bits="7" name="Player Mode" ids="4 Players,2 Players"/>
+                <dip bits="8,10" name="CoinA" ids="4C1C,3C1C,2C1C,1C1C,1C2C,1C3C,1C4C,1C5C"/>
+                <dip bits="11,13" name="CoinB" ids="4C1C,3C1C,2C1C,1C1C,1C2C,1C3C,1C4C,1C5C"/>
+                <dip bits="14" name="Flip Screen" ids="Off,On"/>
+                <dip bits="15" name="Demo Sounds" ids="Off,On"/>
 	</switches>
 	<rom index="0" zip="vball.zip|vballb.zip" md5="none">
                 <!-- bg roms 64k x 8 -->
@@ -41,7 +41,11 @@
                 <!-- audio cpu rom 32k -->
                 <part name="25j1-0.47" crc="10ca79ad"/>
                 <!-- oki pcm roms 64k x 2  -->
+                <!-- <part name="vball.78a" crc="f3e63b76"/>
+                <part name="vball.78b" crc="7ad9d338"/> -->
+	</rom>
+  <rom index="2" zip="vballb.zip" address="0x30000000" md5="none">
                 <part name="vball.78a" crc="f3e63b76"/>
                 <part name="vball.78b" crc="7ad9d338"/>
-	</rom>
+  </rom>
 </misterromdescription>

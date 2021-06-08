@@ -5,7 +5,7 @@ module vball(
   input clk_en,
   input clk_snd,
   input cen_snd,
- 
+
   input [7:0] idata,
   input [24:0] iaddr,
   input iload,
@@ -18,9 +18,14 @@ module vball(
   output hb,
   output vb,
 
-  output gfx_read,
-  output [18:0] gfx_addr,
-  input [7:0] gfx_data,
+  output bg_read,
+  output [18:0] bg_addr,
+  input [7:0] bg_data,
+
+  output [17:0] pcm_rom_addr,
+  input [7:0] pcm_rom_data,
+  output reg pcm_rom_read,
+  input pcm_rom_data_rdy,
 
   output [15:0] audio_l,
   output [15:0] audio_r,
@@ -55,6 +60,8 @@ reg [7:0] port_data;
 wire [7:0] spr_data, smd, sma;
 wire [9:0] bg_col_addr;
 wire [9:0] sp_col_addr;
+//wire [18:0] gfx_addr;
+//wire gfx_read;
 
 wire ram_en = AB[15:11] == 5'b00000; // 0-7ff
 wire spr_en = AB[15:11] == 5'b00001; // 800-fff
@@ -199,16 +206,16 @@ rom #(.addr_width(10), .data_width(8)) scol3(
   .iload(iload && iaddr < 25'hd1800)
 );
 
-dpram ram(
+dpram #(.addr_width(11), .data_width(8)) ram(
   .clk(clk_sys),
-  .addr(AB[11:0]),
+  .addr(AB[10:0]),
   .din(DBo),
   .q(ram_data),
   .rw(WE),
   .ce(~ram_en)
 );
 
-dpram spr_ram(
+dpram #(.addr_width(8), .data_width(8)) spr_ram(
   .clk(clk_sys),
   .addr(AB[7:0]),
   .din(DBo),
@@ -291,6 +298,10 @@ vball_sprites vball_sprites(
   .active(active)
 );
 
+//reg [7:0] gfx_data;
+//always @(posedge clk_sys)
+//  if (sdram_lock) gfx_data <= sdram_data;
+
 vball_bg vball_bg(
   .clk_sys(clk_sys),
 
@@ -302,9 +313,9 @@ vball_bg vball_bg(
   .green(bg_green),
   .blue(bg_blue),
 
-  .gfx_addr(gfx_addr),
-  .gfx_data(gfx_data),
-  .gfx_read(gfx_read),
+  .gfx_addr(bg_addr),
+  .gfx_data(bg_data),
+  .gfx_read(bg_read),
 
   .col_addr(bg_col_addr),
   .col_data({ col1_data[3:0], col2_data[3:0], col3_data[3:0] }),
@@ -317,6 +328,7 @@ vball_bg vball_bg(
   .hscroll({ scrollx_hi, scrollx_lo }),
   .vscroll({ scrolly_hi, scrolly_lo }),
   .vb(vb)
+
 );
 
 always @(posedge clk_sys) begin
@@ -330,7 +342,7 @@ end
 
 /// AUDIO
 
-wire [7:0] zrom_data, zram_data, zDO, ym_dout;
+wire [7:0] zrom_data, zram_data, zDO, ym_dout, oki_dout;
 wire [15:0] zADDR;
 wire zWE;
 reg [7:0] sound, sound_latch;
@@ -338,7 +350,7 @@ reg [7:0] sound, sound_latch;
 wire zrom_en = zADDR[15] == 1'b0; // 0-7fff
 wire zram_en = zADDR[15:11] == 5'b10000; // 8000-87ff
 wire ym_en = zADDR[15:11] == 5'b10001; // 8800-8fff
-wire oki_en = zADDR[15:11] == 5'b10011; // 9800-9fff
+wire oki_en = zADDR[15:2] == 5'b1001_1000_0000_00; // 9800-9fff
 wire sndl_en = zADDR[15:13] == 3'b101; // a000-bfff
 
 (*keep*)wire JT51IRQ;
@@ -352,7 +364,7 @@ always @(posedge clk_snd) begin
     end
     if (zint_reset) begin
       zNMI <= 1'b0;
-	 end
+    end
   end
 end
 
@@ -361,7 +373,12 @@ always @(posedge clk_sys) begin
   if (~zIORQ & ~zM1) zint_reset <= 1'b1;
 end
 
-wire [7:0] zDI = zrom_data | zram_data | (ym_en & zWE ? ym_dout : 8'd0) | (sndl_en ? sound : 8'd0);
+wire [7:0] zDI =
+  zrom_en ? zrom_data :
+  zram_en ? zram_data :
+  ym_en & zWE ? ym_dout :
+  sndl_en ? sound :
+  oki_en ? PCM_DO : 8'd0;
 
 rom #(.addr_width(15), .data_width(8)) zrom(
   .clk(clk_sys),
@@ -373,17 +390,17 @@ rom #(.addr_width(15), .data_width(8)) zrom(
   .iload(iload && iaddr < 25'he8000)
 );
 
-wire [7:0] tmp;
-reg [16:0] tmp_addr;
-rom #(.addr_width(17), .data_width(8)) okirom(
+/*
+rom #(.addr_width(17), .data_width(8)) okirom( // .addr_width(17)
   .clk(clk_sys),
   .ce_n(1'b0),
-  .addr(tmp_addr),
-  .q(tmp),
+  .addr(PCM_ROM_ADDR[16:0]),
+  .q(oki_rom_data),
   .idata(idata),
-  .iaddr(iaddr[16:0]),
-  .iload(iload && iaddr < 25'h108000)
+  .iaddr(iaddr[16:0]), // 16:0
+  .iload(iload && iaddr < 25'h108000) // 108000
 );
+*/
 
 dpram #(.addr_width(11), .data_width(8)) zram(
   .clk(clk_sys),
@@ -399,15 +416,15 @@ jt51 jt51(
 
   .clk(clk_snd),
   .cen_p1(cen_snd),
-  
+
   .cs_n(~ym_en),
   .wr_n(zWE),
   .a0(zADDR[0]),
   .din(zDO),
   .dout(ym_dout),
   .irq_n(JT51IRQ),
-  .xleft(audio_l),
-  .xright(audio_r)
+  .xleft(ym_aud_l),
+  .xright(ym_aud_r)
 );
 
 
@@ -431,5 +448,59 @@ T80se T80se(
 	.DI(zDI),
 	.DO(zDO)
 );
+
+wire [15:0] ym_aud_l;
+wire [15:0] ym_aud_r;
+
+wire signed [16:0] MIX_L = {ym_aud_l[15], ym_aud_l} + {PCM_SOUND_OUT[19], PCM_SOUND_OUT[19:4]};
+wire signed [16:0] MIX_R = {ym_aud_r[15], ym_aud_r} + {PCM_SOUND_OUT[19], PCM_SOUND_OUT[19:4]};
+
+assign audio_l = MIX_L[16:1];
+assign audio_r = MIX_R[16:1];
+
+wire signed [21:0] PCM_SOUND_OUT;
+// reg [17:0] pcm_rom_addr;
+// reg [7:0] pcm_rom_data;
+reg [17:0] pcm_old_addr;
+always @(posedge clk_snd) begin
+  pcm_old_addr <= pcm_rom_addr;
+  pcm_rom_read <= pcm_rom_addr !== pcm_old_addr; // wire?
+//   if (ddram_rdy) pcm_rom_data <= ddram_data;
+end
+
+wire [7:0] PCM_DO;
+
+jt6295 jt6295(
+  .rst(reset),
+  .clk(clk_sys),
+  .cen(cen_snd),
+  .ss(1'b1),
+
+  .wrn(zWE),
+  .din(zDO),
+  .dout(PCM_DO),
+
+  .rom_addr(pcm_rom_addr),
+  .rom_data(pcm_rom_data),
+  .rom_ok(pcm_rom_data_rdy),
+
+  .sound(PCM_SOUND_OUT)
+);
+
+
+//msm6295 msm6295_inst(
+//	.RESET_N(!reset),
+//	.CLK(clk_snd),
+//	.CPU_DI(zDO),
+//	.CPU_DO(PCM_DO),
+//	.CS_N(!oki_en),
+//	.RD_N(!(oki_en && !zWE && !pcm_rom_data_rdy)),
+//	.WR_N(!(oki_en && zWE)),
+//	.SS(1'b1),
+//	.ROM_ADDR(pcm_rom_addr),
+//	.ROM_DATA(pcm_rom_data),
+//	.SOUND_OUT(PCM_SOUND_OUT)
+//);
+
 
 endmodule

@@ -7,11 +7,11 @@ set_global_assignment -name VERILOG_FILE rtl/vball_sprites.v
 set_global_assignment -name VERILOG_FILE rtl/6502/ALU.v
 set_global_assignment -name VERILOG_FILE rtl/6502/cpu6502.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/sdram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/ddram.sv
 set_global_assignment -name SYSTEMVERILOG_FILE Arcade-VBall.sv
-# set_global_assignment -name VERILOG_FILE rtl/z80/NextZ80ALU.v
-# set_global_assignment -name VERILOG_FILE rtl/z80/NextZ80CPU.v
-# set_global_assignment -name VERILOG_FILE rtl/z80/NextZ80Reg.v
 set_global_assignment -name QIP_FILE rtl/jt51/jt51.qip
 set_global_assignment -name VERILOG_FILE rtl/clk_en.v
-#set_global_assignment -name QIP_FILE rtl/tv80/TV80.qip
 set_global_assignment -name QIP_FILE rtl/T80/T80.qip
+set_global_assignment -name VERILOG_FILE rtl/ADPCM_LUT_ROM.v
+set_global_assignment -name VERILOG_FILE rtl/msm6295.v
+set_global_assignment -name QIP_FILE rtl/jt6295/jt6295.qip

@@ -24,6 +24,7 @@ module vball_bg(
   input [8:0] hscroll,
   input [8:0] vscroll,
   input vb
+
 );
 
 reg [8:0] hscr, vscr;
@@ -56,7 +57,7 @@ always @(posedge clk_sys) begin
       gfx_read <= 1'b1;
       state <= 8'd2;
     end
-    8'd2, 8'd2, 8'd3, 8'd4, 8'd5, 8'd6, 8'd7, 8'd8, 8'd9: state <= state + 8'd1;
+    8'd2, 8'd3, 8'd4, 8'd5, 8'd6, 8'd7, 8'd8, 8'd9: state <= state + 8'd1;
     8'd10, 8'd11, 8'd12: begin
       col_addr <= { bg_bank, attr_data[7:5], ph[0] ? pxl2 : pxl1 };
       gfx_read <= 1'b0;
