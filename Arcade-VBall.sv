@@ -281,9 +281,10 @@ pll pll
 
 //assign DDRAM_CLK = clk_sys;
 
-wire cen_main, cen_snd;
+wire cen_main, cen_snd, cen_pcm;
 clk_en #(20) clk_en_6502(clk_sys, cen_main);
 clk_en #(4) clk_en_snd(clk_snd, cen_snd);
+clk_en #(96) clk_en_pcm(clk_sys, cen_pcm);
 
 reg clk_snd;
 reg [2:0] cnt;
@@ -357,6 +358,7 @@ vball vball
 	.clk_en(cen_main),
 	.clk_snd(clk_snd),
 	.cen_snd(cen_snd),
+  .cen_pcm(cen_pcm),
 
 	.idata(ioctl_dout),
 	.iaddr(ioctl_addr),

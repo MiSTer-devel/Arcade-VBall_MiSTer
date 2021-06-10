@@ -5,6 +5,7 @@ module vball(
   input clk_en,
   input clk_snd,
   input cen_snd,
+  input cen_pcm,
 
   input [7:0] idata,
   input [24:0] iaddr,
@@ -342,7 +343,7 @@ end
 
 /// AUDIO
 
-wire [7:0] zrom_data, zram_data, zDO, ym_dout, oki_dout;
+wire [7:0] zrom_data, zram_data, zDO, ym_dout;
 wire [15:0] zADDR;
 wire zWE;
 reg [7:0] sound, sound_latch;
@@ -350,7 +351,7 @@ reg [7:0] sound, sound_latch;
 wire zrom_en = zADDR[15] == 1'b0; // 0-7fff
 wire zram_en = zADDR[15:11] == 5'b10000; // 8000-87ff
 wire ym_en = zADDR[15:11] == 5'b10001; // 8800-8fff
-wire oki_en = zADDR[15:2] == 5'b1001_1000_0000_00; // 9800-9fff
+wire oki_en = zADDR[15:11] == 5'b10011; // 9800-9fff
 wire sndl_en = zADDR[15:13] == 3'b101; // a000-bfff
 
 (*keep*)wire JT51IRQ;
@@ -452,20 +453,35 @@ T80se T80se(
 wire [15:0] ym_aud_l;
 wire [15:0] ym_aud_r;
 
-wire signed [16:0] MIX_L = {ym_aud_l[15], ym_aud_l} + {PCM_SOUND_OUT[19], PCM_SOUND_OUT[19:4]};
-wire signed [16:0] MIX_R = {ym_aud_r[15], ym_aud_r} + {PCM_SOUND_OUT[19], PCM_SOUND_OUT[19:4]};
+wire signed [16:0] MIX_L = {ym_aud_l[15], ym_aud_l} | {PCM_SOUND_OUT[13:0], 2'b0};
+wire signed [16:0] MIX_R = {ym_aud_r[15], ym_aud_r} | {PCM_SOUND_OUT[13:0], 2'b0};
 
 assign audio_l = MIX_L[16:1];
 assign audio_r = MIX_R[16:1];
 
+wire sample;
 wire signed [21:0] PCM_SOUND_OUT;
-// reg [17:0] pcm_rom_addr;
-// reg [7:0] pcm_rom_data;
 reg [17:0] pcm_old_addr;
-always @(posedge clk_snd) begin
-  pcm_old_addr <= pcm_rom_addr;
-  pcm_rom_read <= pcm_rom_addr !== pcm_old_addr; // wire?
-//   if (ddram_rdy) pcm_rom_data <= ddram_data;
+reg pcm_data_rdy;
+reg jt6295_wr;
+reg [7:0] jt6295_din;
+
+
+always @(posedge clk_sys) begin
+  if (pcm_rom_data_rdy) pcm_data_rdy <= 1'b1;
+  if (oki_en & ~zWE) begin
+    jt6295_wr <= 1'b0;
+    jt6295_din <=  zDO;
+  end
+  if (cen_pcm) begin
+    pcm_old_addr <= pcm_rom_addr;
+    pcm_rom_read <= pcm_rom_addr !== pcm_old_addr;
+    if (pcm_data_rdy & ~pcm_rom_data_rdy) pcm_data_rdy <= 1'b0;
+    if (~jt6295_wr & zWE) begin
+      jt6295_wr <= 1'b1;
+//      jt6295_din <= 8'd0;
+    end
+  end
 end
 
 wire [7:0] PCM_DO;
@@ -473,18 +489,19 @@ wire [7:0] PCM_DO;
 jt6295 jt6295(
   .rst(reset),
   .clk(clk_sys),
-  .cen(cen_snd),
+  .cen(cen_pcm),
   .ss(1'b1),
 
-  .wrn(zWE),
-  .din(zDO),
+  .wrn(jt6295_wr),
+  .din(jt6295_din),
   .dout(PCM_DO),
 
   .rom_addr(pcm_rom_addr),
   .rom_data(pcm_rom_data),
-  .rom_ok(pcm_rom_data_rdy),
+  .rom_ok(pcm_data_rdy),
 
-  .sound(PCM_SOUND_OUT)
+  .sound(PCM_SOUND_OUT),
+  .sample(sample)
 );
 
 
