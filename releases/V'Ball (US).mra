@@ -1,11 +1,32 @@
 <misterromdescription>
-	<name>U.S. Championship V'ball (US)</name>
-	<mameversion>229</mameversion>
-	<setname>vball</setname>
-	<mratimestamp>20210312150731</mratimestamp>
+	<name>U.S. Championship V'ball</name>
+	<region>US</region>
+	<homebrew>no</homebrew>
+	<bootleg>no</bootleg>
+	<version></version>
+	<alternative></alternative>
+	<platform></platform>
+	<series></series>
 	<year>1988</year>
-	<manufacturer>Technos Japan</manufacturer>
+	<manufacturer>Technos</manufacturer>
+	<category>Sports</category>
+
+	<setname>vball</setname>
+	<parent>vball</parent>
+	<mameversion>0229</mameversion>
 	<rbf>vball</rbf>
+	<about></about>
+
+	<resolution>15kHz</resolution>
+	<rotation>horizontal</rotation>
+	<flip></flip>
+
+	<players>4</players>
+	<joystick>8-way</joystick>
+	<special_controls></special_controls>
+	<buttons>2</buttons>
+	<buttons></buttons>
+
 	<switches default="ff,ff">
     <dip bits="0,1" name="Difficulty" ids="VeryHard,Hard,Easy,Medium"/>
     <dip bits="2,3" name="SP Game Time" ids="1:15,1:30,2:00,1:45"/>
@@ -17,6 +38,7 @@
     <dip bits="14" name="Flip Screen" ids="Off,On"/>
     <dip bits="15" name="Demo Sounds" ids="Off,On"/>
 	</switches>
+
 	<rom index="0" zip="vball.zip" md5="none">
     <!-- bg roms 64k x 8 -->
     <part name="trj-101.96" crc="f343eee4"/>
@@ -34,7 +56,16 @@
     <!-- audio cpu rom 32k -->
     <part name="25j1-0.47" crc="10ca79ad"/>
 	</rom>
+  <rom index="1"></rom>
   <rom index="2" zip="vball.zip" address="0x30000000" md5="none">
     <part name="25j0-0.78" crc="8e04bdbf"/>
   </rom>
+  <rom_3></rom_3>
+	<rom_4></rom_4>
+
+	<nvram></nvram>
+
+	<remark></remark>
+
+	<mratimestamp>202106130828</mratimestamp>
 </misterromdescription>
