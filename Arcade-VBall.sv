@@ -206,8 +206,6 @@ localparam CONF_STR = {
 	"-;",
 	"O89,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"-;",
-	"F,BIN,Load File;",
-	"-;",
 	"-;",
 	"-;",
 	"DIP;",
@@ -269,18 +267,19 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 
 ///////////////////////   CLOCKS   ///////////////////////////////
 
-wire clk_sys, locked;
+wire clk_sys, locked, clk_vid;
 pll pll
 (
 	.refclk(CLK_50M),
 	.rst(0),
 	.outclk_0(clk_sys),
 	.outclk_1(DDRAM_CLK),
+  .outclk_2(clk_vid),
 	.locked(locked)
 );
 
-wire cen_main, cen_snd, cen_pcm;
-clk_en #(20) clk_en_6502(clk_sys, cen_main);
+wire cen_main, cen_snd, cen_pcm;//, ce_pix;
+clk_en #(18) clk_en_6502(clk_sys, cen_main);
 clk_en #(4) clk_en_snd(clk_snd, cen_snd);
 clk_en #(90) clk_en_pcm(DDRAM_CLK, cen_pcm);
 
@@ -303,7 +302,7 @@ always @(posedge clk_sys)
 	if (ioctl_wr && (ioctl_index==254) && !ioctl_addr[24:3]) sw[ioctl_addr[2:0]] <= ioctl_dout;
 
 wire SERVICE = ~status[7];
-wire [7:0] P1 = {
+wire [7:0] P1 = ~{
 	joystick_0[4], // start1p
 	joystick_0[5], // start1p
 	joystick_0[7], // B
@@ -314,7 +313,7 @@ wire [7:0] P1 = {
 	joystick_0[0], // right
 };
 
-wire [7:0] P2 = {
+wire [7:0] P2 = ~{
 	joystick_1[4], // start2p
 	joystick_1[5], // start1p
 	joystick_1[7], // B
@@ -325,7 +324,7 @@ wire [7:0] P2 = {
 	joystick_1[0], // right
 };
 
-wire [7:0] P3 = {
+wire [7:0] P3 = ~{
 	joystick_2[4],// start3p
 	joystick_2[5], // B
 	joystick_2[7], // B
@@ -336,7 +335,7 @@ wire [7:0] P3 = {
 	joystick_2[0], // right
 };
 
-wire [7:0] P4 = {
+wire [7:0] P4 = ~{
 	joystick_0[4],// start4p
 	joystick_3[5], // B
 	joystick_3[7], // B
@@ -346,8 +345,9 @@ wire [7:0] P4 = {
 	joystick_3[1], // left
 	joystick_3[0], // right
 };
-wire COIN1 = joystick_0[8]; // R2?
-wire COIN2 = joystick_0[9]; // ?
+
+wire COIN1 = ~joystick_0[8]; // R2?
+wire COIN2 = ~joystick_0[9]; // ?
 
 vball vball
 (
@@ -357,6 +357,7 @@ vball vball
 	.clk_snd(clk_snd),
 	.cen_snd(cen_snd),
   .cen_pcm(cen_pcm),
+  .clk_vid(clk_vid),
 
 	.idata(ioctl_dout),
 	.iaddr(ioctl_addr),
@@ -383,10 +384,10 @@ vball vball
 	.audio_l(AUDIO_L),
 	.audio_r(AUDIO_R),
 
-	.P1(~P1),
-	.P2(~P2),
-	.P3(~P3),
-	.P4(~P4),
+	.P1(P1),
+	.P2(P2),
+	.P3(P3),
+	.P4(P4),
 
 	.COIN1(COIN1),
 	.COIN2(COIN2),
@@ -397,8 +398,8 @@ vball vball
 
 );
 
-assign CE_PIXEL = cen_main;
-assign CLK_VIDEO = clk_sys;
+assign CE_PIXEL = 1'b1;
+assign CLK_VIDEO = clk_vid;
 
 wire HBlank, VBlank;
 wire HSync, VSync;

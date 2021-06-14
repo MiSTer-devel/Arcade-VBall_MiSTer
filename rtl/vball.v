@@ -6,6 +6,7 @@ module vball(
   input clk_snd,
   input cen_snd,
   input cen_pcm,
+  input clk_vid,
 
   input [7:0] idata,
   input [24:0] iaddr,
@@ -90,7 +91,7 @@ assign red = active ? sp_red : bg_red;
 assign green = active ? sp_green : bg_green;
 assign blue = active ? sp_blue : bg_blue;
 
-wire [8:0] hcnt = hcount + 9'd12;
+wire [8:0] hcnt = flip_screen ? 9'd240 - hcount + 9'd12: hcount + 9'd12;
 wire [8:0] vcnt = vcount + 9'd8;
 
 
@@ -264,7 +265,7 @@ cpu6502 cpu1(
 
 vball_video vball_video(
 
-  .clk(clk_en),
+  .clk(clk_vid),
   .flip(flip_screen),
   .hs(hs),
   .vs(vs),
