@@ -177,17 +177,18 @@ assign USER_OUT = '1;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 // assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
-assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
+// assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
 
 assign VGA_SL = 0;
 assign VGA_F1 = 0;
 assign VGA_SCALER = 0;
 
-assign AUDIO_S = 0;
+assign AUDIO_S = 1;
 // assign AUDIO_L = 0;
 // assign AUDIO_R = 0;
 assign AUDIO_MIX = 0;
 
+assign LED_USER = 0;
 assign LED_DISK = 0;
 assign LED_POWER = 0;
 assign BUTTONS = 0;
@@ -211,6 +212,7 @@ localparam CONF_STR = {
 	"-;",
 	"DIP;",
 	"-;",
+	"T7,Service;",
 	"T0,Reset;",
 	"R0,Reset and close OSD;",
 	"J1,Start1P,Start2P,A,B,CoinA,CoinB,Service;",
@@ -232,6 +234,8 @@ wire        ioctl_wait;
 
 wire [15:0] joystick_0;
 wire [15:0] joystick_1;
+wire [15:0] joystick_2;
+wire [15:0] joystick_3;
 
 hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 (
@@ -257,30 +261,38 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	.ioctl_index(ioctl_index),
 
 	.joystick_0(joystick_0),
-	.joystick_1(joystick_1)
+	.joystick_1(joystick_1),
+	.joystick_2(joystick_2),
+	.joystick_3(joystick_3)
 
 );
 
 ///////////////////////   CLOCKS   ///////////////////////////////
 
-wire clk_sys, clk_snd, locked;
+wire clk_sys, locked;
 pll pll
 (
 	.refclk(CLK_50M),
 	.rst(0),
 	.outclk_0(clk_sys),
-	.outclk_1(clk_snd),
+	.outclk_1(DDRAM_CLK),
 	.locked(locked)
 );
 
-wire cen_main, cen_snd;
+wire cen_main, cen_snd, cen_pcm;
 clk_en #(20) clk_en_6502(clk_sys, cen_main);
-clk_en #(3) clk_en_snd(clk_snd, cen_snd);
+clk_en #(4) clk_en_snd(clk_snd, cen_snd);
+clk_en #(90) clk_en_pcm(DDRAM_CLK, cen_pcm);
 
-// reg cen_snd;
-// always @(posedge clk_snd)
-// 	cen_snd <= ~cen_snd;
-// clk_en #() clk_en_snd2(clk_snd, cen_snd);
+reg clk_snd;
+reg [2:0] cnt;
+always @(posedge clk_sys) begin
+  cnt <= cnt + 3'd1;
+  if (cnt == 3'd4) begin
+    cnt <= 3'd0;
+		clk_snd <= ~clk_snd;
+  end
+end
 
 wire reset = RESET | status[0] | buttons[1] | ioctl_download;
 
@@ -292,33 +304,63 @@ always @(posedge clk_sys)
 
 wire SERVICE = ~status[7];
 wire [7:0] P1 = {
-	joystick_0[4], // start
-	joystick_0[5], // select
+	joystick_0[4], // start1p
+	joystick_0[5], // start1p
 	joystick_0[7], // B
-	joystick_0[6], // A
-	joystick_0[0], // down
-	joystick_0[1], // up
-	joystick_0[2], // left
-	joystick_0[3] // right
+	joystick_0[6],	// A
+	joystick_0[2], // down
+	joystick_0[3], // up
+	joystick_0[1], // left
+	joystick_0[0], // right
+};
+
+wire [7:0] P2 = {
+	joystick_1[4], // start2p
+	joystick_1[5], // start1p
+	joystick_1[7], // B
+	joystick_1[6],	// A
+	joystick_1[2], // down
+	joystick_1[3], // up
+	joystick_1[1], // left
+	joystick_1[0], // right
+};
+
+wire [7:0] P3 = {
+	joystick_2[4],// start3p
+	joystick_2[5], // B
+	joystick_2[7], // B
+	joystick_2[6],	// A
+	joystick_2[2], // down
+	joystick_2[3], // up
+	joystick_2[1], // left
+	joystick_2[0], // right
+};
+
+wire [7:0] P4 = {
+	joystick_0[4],// start4p
+	joystick_3[5], // B
+	joystick_3[7], // B
+	joystick_3[6],	// A
+	joystick_3[2], // down
+	joystick_3[3], // up
+	joystick_3[1], // left
+	joystick_3[0], // right
 };
 wire COIN1 = joystick_0[8]; // R2?
 wire COIN2 = joystick_0[9]; // ?
-reg [7:0] P2 = 8'hff;
-reg [7:0] P3 = 8'hff;
-reg [7:0] P4 = 8'hff;
 
 vball vball
 (
 	.reset(reset),
 	.clk_sys(clk_sys),
-	// .clk_vid(cen_main),
 	.clk_en(cen_main),
 	.clk_snd(clk_snd),
 	.cen_snd(cen_snd),
+  .cen_pcm(cen_pcm),
 
 	.idata(ioctl_dout),
 	.iaddr(ioctl_addr),
-	.iload(ioctl_download & ~ioctl_index),
+	.iload(ioctl_wr && ioctl_download && (ioctl_index==0)),
 
 	.red(red),
 	.green(green),
@@ -329,17 +371,22 @@ vball vball
 	.hb(HBlank),
 	.vb(VBlank),
 
-	.gfx_addr(gfx_addr),
-	.gfx_data(gfx_data),
-	.gfx_read(gfx_read),
+	.bg_addr(bg_addr),
+	.bg_data(bg_data),
+	.bg_read(bg_read),
+
+	.pcm_rom_addr(pcm_rom_addr),
+	.pcm_rom_data(pcm_rom_data),
+	.pcm_rom_read(pcm_rom_read),
+	.pcm_rom_data_rdy(pcm_rom_data_rdy),
 
 	.audio_l(AUDIO_L),
 	.audio_r(AUDIO_R),
 
 	.P1(~P1),
-	.P2(P2),
-	.P3(P3),
-	.P4(P4),
+	.P2(~P2),
+	.P3(~P3),
+	.P4(~P4),
 
 	.COIN1(COIN1),
 	.COIN2(COIN2),
@@ -363,30 +410,40 @@ assign VGA_G  = { green, 4'd0 };
 assign VGA_R  = { red, 4'd0 };
 assign VGA_B  = { blue, 4'd0 };
 
-wire [18:0] gfx_addr;
-wire [7:0] gfx_data;
-wire gfx_read;
-
-//wire [2:0] fx = status[17:15];
-
-// arcade_video #(256,12,0) arcade_video (
-//   .*,
-//   .clk_video(clk_vid),
-//   .RGB_in({ red, green, blue })
-// );
+wire [18:0] bg_addr;
+wire [7:0] bg_data;
+wire bg_read;
 
 sdram sdram
 (
 	.*,
 	.init(~locked),
 	.clk(clk_sys),
-	.addr(ioctl_download ? ioctl_addr : gfx_addr),
+	.addr(ioctl_download ? ioctl_addr : bg_addr),
 	.wtbt(0),
-	.dout(gfx_data),
+	.dout(bg_data),
 	.din(ioctl_dout),
-	.rd(gfx_read),
-	.we(ioctl_wr),
+	.rd(bg_read),
+	.we(ioctl_index == 0 && ioctl_wr),
 	.ready()
+);
+
+wire [63:0] ddram_data;
+wire [17:0] pcm_rom_addr;
+wire [7:0] pcm_rom_data = ddram_data[(pcm_rom_addr[2:0]*8)+:8];
+wire pcm_rom_read;
+wire pcm_rom_data_rdy;
+
+ddram ddram
+(
+	.*,
+
+	.ch1_addr(pcm_rom_addr),
+	.ch1_dout(ddram_data),
+	.ch1_din(64'b0),
+	.ch1_rnw(1'b1),
+	.ch1_req(pcm_rom_read),
+	.ch1_ready(pcm_rom_data_rdy)
 );
 
 endmodule
