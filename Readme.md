@@ -26,5 +26,4 @@ Default mapping is Coin A (R2), Coin B (L2), Jump (A), Action (B) & Start.
 TODO:
 - vga output, does it work?
 - horiz/vert sprite bug when half visible, I will not fix horizontal because the same problem is visible on the original game (smaller visible area)
-- bug: releasing coin button increase counter
 - music won't start on reboot or country screens
