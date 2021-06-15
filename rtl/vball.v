@@ -98,7 +98,16 @@ wire [8:0] vcnt = vcount + 9'd8;
 always @(posedge clk_sys) begin
   int_reset <= 1'b0;
   port_data <= 8'd0;
-  if (port_en)
+  if (reset) begin
+    sound <= 8'd0;
+    scrolly_lo <= 8'd0;
+    scrolly_hi <= 8'd0;
+    scrollx_lo <= 8'd0;
+    scrolly_hi <= 8'd0;
+    sp_bank <= 8'd0;
+    bg_bank <= 8'd0;
+  end
+  else if (port_en)
     case (AB[3:0])
       4'h0: port_data <= P1;
       4'h1: port_data <= P2;
@@ -353,7 +362,7 @@ wire sndl_en = zADDR[15:13] == 3'b101; // a000-bfff
 wire zIORQ, zM1;
 reg zNMI, zint_reset;
 always @(posedge clk_snd) begin
-  if (cen_snd) begin
+  if (cen_snd & ~reset) begin
     sound_latch <= sound;
     if (sound_latch ^ sound) begin
       zNMI <= 1'b1;
