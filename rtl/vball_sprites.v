@@ -38,7 +38,7 @@ reg [4:0] rsv;
 reg [7:0] attr, id;
 reg [3:0] cid;
 
-wire [7:0] vcntv = 8'd240 - vcount;
+wire [7:0] vcntv = 8'd256 - vcount;
 
 always @(posedge clk_sys) begin
 
@@ -75,7 +75,7 @@ always @(posedge clk_sys) begin
       state <= 4'd5;
     end
     4'd5: begin
-      spy <= attr[7] ? smd + 8'd16 : smd; // read y and adjust based on sprite size
+      spy <= attr[7] ? smd + 8'd32 : smd + 8'd16; // read y and adjust based on sprite size
       sma <= sma + 8'd2; // move to next sprite attribute
       state <= 3'd6;
     end
