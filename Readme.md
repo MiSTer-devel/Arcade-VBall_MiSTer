@@ -1,9 +1,17 @@
-# U.S. Championship V'ball (beta version)
+# U.S. Championship V'ball
 
 
-This is the emulation of V'Ball from Technos Japan ported to MiSTerFPGA by Pierre Cornier (Pierco).
+This is the emulation of V'Ball from Technos Japan ported to MiSTerFPGA by Pierre Cornier (Pierco). The core uses SDRAM for background tiles & DDRAM for PCM data, loaded automagically from mra.
 
-Default mapping is Coin A (R2), Coin B (L2), Jump (A), Action (B) & Start.
+The default joystick mapping is:
+
+| Name   | Button |
+|--------|--------|
+| Coin A | R2     |
+| Coin B | L2     |
+| Jump   | B      |
+| Action | A      |
+| Start  | Start  |
 
 ## Games provided
 
@@ -23,7 +31,4 @@ Default mapping is Coin A (R2), Coin B (L2), Jump (A), Action (B) & Start.
 - Demo Sounds
 
 
-TODO:
-- vga output, does it work?
-- horiz/vert sprite bug when half visible, I will not fix horizontal because the same problem is visible on the original game (smaller visible area)
-- music won't start on reboot or country screens
+I would like to thank Alan Steremberg, ElectronAsh, David Shadoff & Chockichoc for their help and support.
