@@ -19,16 +19,6 @@ module vball_video(
 assign nmi = vcount == 239 && hcount == 0;
 assign irq = vcount[2:0] == 7 && hcount == 0;
 
-// 0        240  320
-// +---------+----+ 0
-// |         |    |
-// | screen  | hb |
-// |         |    |
-// +---------+----+ 239
-// |    vblank    |
-// +---------+----+ 273
-//
-
 // generate video signals
 always @(posedge clk) begin
   if (reset) begin
