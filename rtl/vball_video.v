@@ -16,7 +16,7 @@ module vball_video(
 );
 
 
-assign nmi = vcount == 239 && hcount == 0;
+assign nmi = vcount == 240 && hcount == 0;
 assign irq = vcount[2:0] == 7 && hcount == 0;
 
 // generate video signals
@@ -34,17 +34,19 @@ always @(posedge clk) begin
     case (hcount)
       1: hb <= 1'b0;
       241: hb <= 1'b1;
-      289: hs <= 1'b0;
-      321: hs <= 1'b1;
-      400: begin
+      287: hs <= 1'b0;
+      319: hs <= 1'b1;
+      399: begin
         vcount <= vcount + 9'd1;
         hcount <= 9'd0;
         case (vcount)
-          0: vb <= 1'b0;
-          240: vb <= 1'b1;
-          243: vs <= 1'b0;
-          253: vs <= 1'b1;
-          259: vcount <= 9'b0;
+          239: vb <= 1'b1;
+          242: vs <= 1'b0;
+          252: vs <= 1'b1;
+          258: begin
+            vcount <= 9'b0;
+            vb <= 1'b0;
+          end
         endcase
       end
     endcase
