@@ -179,7 +179,7 @@ assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 // assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 // assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
 
-assign VGA_SL = 0;
+//assign VGA_SL = 0;
 assign VGA_F1 = 0;
 assign VGA_SCALER = 0;
 
@@ -205,6 +205,7 @@ localparam CONF_STR = {
 	"VBall;;",
 	"-;",
 	"O89,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
+  "O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	"-;",
 	"-;",
 	"-;",
@@ -267,21 +268,24 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 
 ///////////////////////   CLOCKS   ///////////////////////////////
 
-wire clk_sys, locked, clk_vid;
+wire clk_sys, locked, clk_vid, clk_48;
 pll pll
 (
 	.refclk(CLK_50M),
 	.rst(0),
-	.outclk_0(clk_sys),
-	.outclk_1(DDRAM_CLK),
-  .outclk_2(clk_vid),
+	.outclk_0(clk_sys), // 96
+	.outclk_1(clk_48),
+  .outclk_2(clk_vid), // 6
 	.locked(locked)
 );
 
-wire cen_main, cen_snd, cen_pcm;//, ce_pix;
+assign DDRAM_CLK = clk_48;
+
+wire cen_main, cen_snd, cen_pcm, cen_vid;
 clk_en #(18) clk_en_6502(clk_sys, cen_main);
 clk_en #(4) clk_en_snd(clk_snd, cen_snd);
-clk_en #(90) clk_en_pcm(DDRAM_CLK, cen_pcm);
+clk_en #(90) clk_en_pcm(clk_48, cen_pcm);
+clk_en #(3) clk_en_vid(clk_48, cen_vid);
 
 reg clk_snd;
 reg [2:0] cnt;
@@ -398,18 +402,22 @@ vball vball
 
 );
 
-assign CE_PIXEL = 1'b1;
-assign CLK_VIDEO = clk_vid;
+reg ce_pix;
+always @(posedge clk_48)
+  if (cen_vid)  // 12
+    ce_pix <= ~ce_pix;
+
+arcade_video #(240,12) arcade_video
+(
+  .*,
+  .clk_video(clk_48),
+  .RGB_in({ red, green, blue }),
+  .fx(status[5:3])
+);
 
 wire HBlank, VBlank;
 wire HSync, VSync;
 wire [3:0] red, green, blue;
-assign VGA_DE = ~(HBlank | VBlank);
-assign VGA_HS = HSync;
-assign VGA_VS = VSync;
-assign VGA_G  = { green, 4'd0 };
-assign VGA_R  = { red, 4'd0 };
-assign VGA_B  = { blue, 4'd0 };
 
 wire [18:0] bg_addr;
 wire [7:0] bg_data;

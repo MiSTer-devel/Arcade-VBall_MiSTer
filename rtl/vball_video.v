@@ -22,15 +22,15 @@ assign irq = vcount[2:0] == 7 && hcount == 0;
 // generate video signals
 always @(posedge clk) begin
   if (reset) begin
-  
+
     hcount <= 9'd0;
     vcount <= 9'd0;
-  
+
   end
   else begin
-  
+
     hcount <= hcount + 9'd1;
-  
+
     case (hcount)
       1: hb <= 1'b0;
       241: hb <= 1'b1;
@@ -41,18 +41,18 @@ always @(posedge clk) begin
         hcount <= 9'd0;
         case (vcount)
           239: vb <= 1'b1;
-          242: vs <= 1'b0;
-          252: vs <= 1'b1;
+          248: vs <= 1'b0;
+          251: vs <= 1'b1;
           258: begin
             vcount <= 9'b0;
-            vb <= 1'b0;
+            vb <= 9'd0;
           end
         endcase
       end
     endcase
-  
+
   end
-    
+
 end
 
 endmodule
