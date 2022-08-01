@@ -36,14 +36,14 @@ always @(posedge clk) begin
       241: hb <= 1'b1;
       297: hs <= 1'b0;
       329: hs <= 1'b1;
-      399: begin
+      384: begin
         vcount <= vcount + 9'd1;
         hcount <= 9'd0;
         case (vcount)
           239: vb <= 1'b1;
           248: vs <= 1'b0;
           251: vs <= 1'b1;
-          258: begin
+          262: begin
             vcount <= 9'b0;
             vb <= 9'd0;
           end
