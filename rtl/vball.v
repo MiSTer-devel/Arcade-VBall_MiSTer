@@ -20,6 +20,9 @@ module vball(
   output hb,
   output vb,
 
+	input [3:0] h_center,
+	input [2:0] v_center,
+
   output bg_read,
   output [18:0] bg_addr,
   input [7:0] bg_data,
@@ -280,6 +283,9 @@ vball_video vball_video(
   .vs(vs),
   .hb(hb),
   .vb(vb),
+
+	.h_center(h_center),    //Screen centering
+	.v_center(v_center),
 
   .nmi(nmi),
   .irq(irq),

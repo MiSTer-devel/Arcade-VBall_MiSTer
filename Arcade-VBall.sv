@@ -195,6 +195,11 @@ assign LED_POWER = 0;
 assign BUTTONS = 0;
 
 //////////////////////////////////////////////////////////////////
+// Status Bit Map: (0..31 => "O", 32..63 => "o")
+// 0         1         2         3          4         5         6
+// 01234567890123456789012345678901 23456789012345678901234567890123
+// 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
+//    XXX  XXXXXXXXX
 
 wire [1:0] ar = status[9:8];
 
@@ -206,9 +211,12 @@ localparam CONF_STR = {
 	"VBall;;",
 	"-;",
 	"O89,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
-  "O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
+ 	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	"-;",
 	"-;",
+	"P1,Screen Centering;",
+	"P1OAD,H Center,0,+1,+2,+3,+4,+5,+6,+7,-8,-7,-6,-5,-4,-3,-2,-1;",
+	"P1OEG,V Center,0,+1,+2,+3,-4,-3,-2,-1;",
 	"-;",
 	"DIP;",
 	"-;",
@@ -275,7 +283,7 @@ pll pll
 	.rst(0),
 	.outclk_0(clk_sys), // 96
 	.outclk_1(clk_48),
-  .outclk_2(clk_vid), // 6
+  	.outclk_2(clk_vid), // 6
 	.locked(locked)
 );
 
@@ -360,8 +368,8 @@ vball vball
 	.clk_en(cen_main),
 	.clk_snd(clk_snd),
 	.cen_snd(cen_snd),
-  .cen_pcm(cen_pcm),
-  .clk_vid(clk_vid),
+  	.cen_pcm(cen_pcm),
+  	.clk_vid(clk_vid),
 
 	.idata(ioctl_dout),
 	.iaddr(ioctl_addr),
@@ -375,6 +383,9 @@ vball vball
 	.vs(VSync),
 	.hb(HBlank),
 	.vb(VBlank),
+
+	.h_center(status[13:10]),    //Screen centering
+	.v_center(status[16:14]),
 
 	.bg_addr(bg_addr),
 	.bg_data(bg_data),
