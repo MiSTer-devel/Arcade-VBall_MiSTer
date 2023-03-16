@@ -183,6 +183,8 @@ assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 //assign VGA_SL = 0;
 assign VGA_F1 = 0;
 assign VGA_SCALER = 0;
+assign VGA_DISABLE = 0;
+assign HDMI_FREEZE = 0;
 
 assign AUDIO_S = 1;
 // assign AUDIO_L = 0;
@@ -199,7 +201,7 @@ assign BUTTONS = 0;
 // 0         1         2         3          4         5         6
 // 01234567890123456789012345678901 23456789012345678901234567890123
 // 0123456789ABCDEFGHIJKLMNOPQRSTUV 0123456789ABCDEFGHIJKLMNOPQRSTUV
-//    XXX  XXXXXXXXX
+//    XXX  XXXXXXXXXX
 
 wire [1:0] ar = status[9:8];
 
@@ -214,9 +216,10 @@ localparam CONF_STR = {
  	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	"-;",
 	"-;",
-	"P1,Screen Centering;",
+	"P1,Video Settings;",
 	"P1OAD,H Center,0,+1,+2,+3,+4,+5,+6,+7,-8,-7,-6,-5,-4,-3,-2,-1;",
 	"P1OEG,V Center,0,+1,+2,+3,-4,-3,-2,-1;",
+	"P1OH,YC Video Timing,Off,On;",
 	"-;",
 	"DIP;",
 	"-;",
@@ -253,6 +256,7 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 	.gamma_bus(gamma_bus),
 
 	.forced_scandoubler(forced_scandoubler),
+    .new_vmode(new_vmode),
 
 	.buttons(buttons),
 	.status(status),
@@ -386,6 +390,7 @@ vball vball
 
 	.h_center(status[13:10]),    //Screen centering
 	.v_center(status[16:14]),
+	.ycmode(status[17]),
 
 	.bg_addr(bg_addr),
 	.bg_data(bg_data),
@@ -425,6 +430,16 @@ arcade_video #(240,12) arcade_video
   .RGB_in({ red, green, blue }),
   .fx(status[5:3])
 );
+
+// If video timing changes, force mode update
+reg [1:0] video_status;
+reg new_vmode = 0;
+always @(posedge clk_48) begin
+    if (video_status != status[17]) begin
+        video_status <= status[17];
+        new_vmode <= ~new_vmode;
+    end
+end
 
 wire HBlank, VBlank;
 wire HSync, VSync;
