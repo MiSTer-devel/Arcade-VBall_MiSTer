@@ -22,6 +22,7 @@ module vball(
 
 	input [3:0] h_center,
 	input [2:0] v_center,
+  input ycmode,
 
   output bg_read,
   output [18:0] bg_addr,
@@ -286,6 +287,7 @@ vball_video vball_video(
 
 	.h_center(h_center),    //Screen centering
 	.v_center(v_center),
+  .ycmode(ycmode),
 
   .nmi(nmi),
   .irq(irq),
