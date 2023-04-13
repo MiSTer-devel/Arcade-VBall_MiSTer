@@ -293,21 +293,34 @@ pll pll
 
 assign DDRAM_CLK = clk_48;
 
-wire cen_main, cen_snd, cen_pcm, cen_vid;
+wire cen_main, cen_pcm,cen_vid;
 clk_en #(18) clk_en_6502(clk_sys, cen_main);
-clk_en #(4) clk_en_snd(clk_snd, cen_snd);
-clk_en #(90) clk_en_pcm(clk_48, cen_pcm);
+//clk_en #(4) clk_en_snd(clk_snd, cen_snd);
+clk_en #(91) clk_en_pcm(clk_48, cen_pcm);
 clk_en #(3) clk_en_vid(clk_48, cen_vid);
 
 reg clk_snd;
 reg [2:0] cnt;
 always @(posedge clk_sys) begin
   cnt <= cnt + 3'd1;
-  if (cnt == 3'd4) begin
+  if (cnt == 3'd3) begin
     cnt <= 3'd0;
 		clk_snd <= ~clk_snd;
   end
 end
+
+//Generate 3.579545MHz clock enable for 
+//(uses Jotego's fractional clock divider from JTFRAME)
+wire [9:0] sound_cen_n = 10'd44;
+wire [9:0] sound_cen_m = 10'd295;
+wire cen_snd;
+jtframe_frac_cen #(2) sound_cen
+(
+	.clk(clk_snd),
+	.n(sound_cen_n),
+	.m(sound_cen_m),
+	.cen({1'bZ,cen_snd})
+);
 
 wire reset = RESET | status[0] | buttons[1] | ioctl_download;
 
