@@ -241,7 +241,7 @@ wire [24:0] ioctl_addr;
 wire  [7:0] ioctl_dout;
 wire        ioctl_download;
 wire  [7:0] ioctl_index;
-wire        ioctl_wait;
+wire        ioctl_wait=0;
 
 wire [15:0] joystick_0;
 wire [15:0] joystick_1;
